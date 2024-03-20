@@ -4,8 +4,9 @@ import glm
 import imgui
 from imgui.integrations.glfw import GlfwRenderer
 import OpenGL.GL as gl
-
-from Source.App.testwindow import show_test_window
+import esper
+import Source.Util.dy as dy
+import Source.Manager.ShaderManager as ShaderManager
 
 
 def key_callback(window, key, scancode, action, mods):
@@ -30,7 +31,6 @@ def frame_buffer_size_callback(window, width, height):
 
 
 def mouse_scroll_callback(window, xoffset, yoffset):
-    print("Mouse scroll: " + str(xoffset) + " " + str(yoffset))
     # retrieve and cast to our App object
     app = glfw.get_window_user_pointer(window)
     app.mouseScroll = glm.vec2(xoffset, yoffset)
@@ -50,8 +50,11 @@ def mouse_button_callback(window, button, action, mods):
 
 
 class App:
+
+    DEFAULT_MAP_DIR = "Resources/Map/"
+    DEFAULT_MAP_NAME = "test_map.txt"
+
     def __init__(self):
-        self.window = None
         self.impl = None
         self.width = 1280
         self.height = 720
@@ -64,6 +67,8 @@ class App:
         self.mouse_btn_released = None
         self.mouseScroll = glm.vec2(0, 0)
         self.mousePos = glm.vec2(-1, -1)
+        self.window = self.impl_glfw_init()
+        self.shader_manager = ShaderManager.ShaderManager()
 
     def prepare(self):
         # self.key_pressed = None
@@ -102,8 +107,28 @@ class App:
         imgui.end()
         pass
 
+    def on_create(self):
+        dy.log.info("Program started")
+
+        # cooking shaders
+        self.shader_manager.hard_load_all_shaders()
+
+        self.start_scene()
+        pass
+
+    def start_scene(self, map_name=DEFAULT_MAP_NAME):
+        map_data = dy.read_text(self.DEFAULT_MAP_DIR + map_name)
+        dy.log.info("Map data: \n" + map_data)
+        pass
+
+    def on_update(self, dt):
+        esper.process(dt)
+        pass
+
     def run(self):
         self.init()
+
+        self.on_create()
 
         while not glfw.window_should_close(self.window):
             glfw.poll_events()
@@ -115,6 +140,7 @@ class App:
 
             self.draw_spec()
 
+            self.on_update(self.io.delta_time)
             # show_test_window()
 
             gl.glClearColor(self.clear_color.x, self.clear_color.y, self.clear_color.z, self.clear_color.w)
@@ -128,7 +154,6 @@ class App:
 
     def init(self):
         imgui.create_context()
-        self.window = self.impl_glfw_init()
         self.impl = GlfwRenderer(self.window)
         glfw.set_char_callback(self.window, self.impl.char_callback)
         glfw.set_cursor_pos_callback(self.window, self.impl.mouse_callback)
