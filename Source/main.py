@@ -1,4 +1,4 @@
-import App.App as App
+import Source.App.App as App
 
 
 def main():
