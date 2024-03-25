@@ -38,6 +38,9 @@ class Camera:
 
         self.view = None
 
+        self.will_print_camera_info = False
+        self.will_print_camera_using_imgui = False
+
         self.update_camera_vectors()
 
     def update_camera_vectors(self):
@@ -51,7 +54,10 @@ class Camera:
 
         self.view = glm.lookAt(self.pos, self.pos + self.dir, self.up)
         # self.view = glm.lookAt(glm.vec3(0, 0, 3), glm.vec3(0, 0, 0), glm.vec3(0, 1, 0))
-        # self.print_camera_info()
+
+        if self.will_print_camera_info:
+            self.print_camera_info()
+
         pass
 
     def print_camera_info(self):
@@ -99,12 +105,12 @@ class Camera:
         pass
 
     def process_mouse_scroll(self, y_offset):
-        if 1.0 <= self.fov <= 45.0:
+        if 1.0 <= self.fov <= 90.0:
             self.fov -= y_offset
         if self.fov <= 1.0:
             self.fov = 1.0
-        if self.fov >= 45.0:
-            self.fov = 45.0
+        if self.fov >= 90.0:
+            self.fov = 90.0
 
         self.update_camera_vectors()
 

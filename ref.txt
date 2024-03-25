@@ -6,7 +6,7 @@ lib:
 	PyGLM
 	PyOpenGL
 	PyImgui
-	pynum
+	numpy
 	glfw
 	esper
 	colorLog
