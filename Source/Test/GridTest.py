@@ -35,8 +35,8 @@ class GridTest:
 
     def create(self):
         self.vao = gl.glGenVertexArrays(1)
-        self.vbo_pos = gl.glGenBuffers(1)
-        self.vbo_text_coords = gl.glGenBuffers(1)
+        self.vbo_pos = gl.glGenVertexArrays(1)
+        self.vbo_text_coords = gl.glGenVertexArrays(1)
         self.ebo = gl.glGenBuffers(1)
 
         gl.glBindVertexArray(self.vao)

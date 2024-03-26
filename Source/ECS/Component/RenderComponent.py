@@ -6,4 +6,4 @@ class RenderComponent:
 
     def __init__(self, shader: Shader.Shader, shader_type: ShaderManager.ShaderType):
         self.shader = shader
-        self.type = shader_type
+        self.shader_type = shader_type

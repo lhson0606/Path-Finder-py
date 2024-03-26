@@ -1,24 +1,27 @@
+import enum
 import sys
+
+import OpenGL.GL as gl
+import esper
 import glfw
 import glm
 import imgui
 from imgui.integrations.glfw import GlfwRenderer
-import OpenGL.GL as gl
-import esper
 
-import Source.Util.dy as dy
+import Source.ECS as ECS
+import Source.ECS.Component.MapComponent as MapComponent
+import Source.ECS.Component.RenderComponent as RenderComponent
+import Source.ECS.Component.GridComponent as GridComponent
 import Source.Manager.ShaderManager as ShaderManager
 import Source.Render.Camera as Camera
-
-import enum
-
+import Source.Util.dy as dy
 from Source.Map.Map import Map
-# import Source.Test.GridTest as GridTest
-
 from Source.Test.testwindow import show_test_window
 
-import Source.ECS.Component.MapComponent as MapComponent
+import Source.ECS.Processor.RenderProcessor as RenderProcessor
 
+
+import Source.Test.GridTest as GridTest
 from OpenGL.GLU import *
 
 
@@ -94,30 +97,30 @@ def process_input(window):
         glfw.set_window_should_close(window, True)
 
     if glfw.get_key(window, glfw.KEY_W) == glfw.PRESS:
-        if (app.context == app.Context.SCENE):
+        if app.context == app.Context.SCENE:
             app.camera.process_keyboard(Camera.Camera.Movement.FORWARD, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_S) == glfw.PRESS:
-        if (app.context == app.Context.SCENE):
+        if app.context == app.Context.SCENE:
             app.camera.process_keyboard(Camera.Camera.Movement.BACKWARD, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_A) == glfw.PRESS:
-        if (app.context == app.Context.SCENE):
+        if app.context == app.Context.SCENE:
             app.camera.process_keyboard(Camera.Camera.Movement.LEFT, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_D) == glfw.PRESS:
-        if (app.context == app.Context.SCENE):
+        if app.context == app.Context.SCENE:
             app.camera.process_keyboard(Camera.Camera.Movement.RIGHT, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_SPACE) == glfw.PRESS:
-        if (app.context == app.Context.SCENE):
+        if app.context == app.Context.SCENE:
             app.camera.process_keyboard(Camera.Camera.Movement.UP, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-        if (app.context == app.Context.SCENE):
+        if app.context == app.Context.SCENE:
             app.camera.process_keyboard(Camera.Camera.Movement.DOWN, app.io.delta_time)
 
-    if (app.context == app.Context.SCENE):
+    if app.context == app.Context.SCENE:
         app.update_view()
 
 
@@ -143,7 +146,6 @@ class App:
         SCENE = 1,
 
     def __init__(self):
-        self.current_error_message = "None"
         self.has_error = False
         self.impl = None
         self.width = 1280
@@ -166,10 +168,22 @@ class App:
         self.mouse_first_time_enter = True
         self.context = None
 
-        self.current_map_entity = -1
         self.opened_map = {}
         self.cur_world_name = None
 
+        # imgui modal state
+        self.current_error_message = "None"
+        self.show_inp_map_size_modal = False
+
+        # imgui input state
+        self.map_inp_changed_i0 = True
+        self.map_inp_changed_i1 = True
+        self.widgets_basic_i0 = 25
+        self.widgets_basic_i1 = 25
+
+        self.creating_new_map = False
+
+        self.grid_test = None
     def prepare(self):
         pass
 
@@ -222,72 +236,47 @@ class App:
         pass
 
     def on_create(self):
-        self.init_system()
-
-        # cooking shaders
-        self.shader_manager.hard_load_all_shaders()
-
-        # change to EDITOR context (default)
-        self.change_context(self.Context.EDITOR)
-
-        for (name) in esper.list_worlds():
-            self.opened_map[name] = True
-
-        self.start_scene()
-
+        # self.start_scene(self.cur_world_name, False)
+        self.grid_test = GridTest.GridTest()
+        self.grid_test.create()
         pass
 
-    def start_scene(self, map_name=None):
+    def start_scene(self, map_name=None, asked_user_map_size=False):
         if map_name is None:
             return
 
-        esper.switch_world(map_name)
-        self.opened_map[map_name] = True
-        # map_data = dy.read_text(self.DEFAULT_MAP_DIR + map_name)
-        # dy.log.info("Map data: \n" + map_data)
+        if not asked_user_map_size:
+            self.init_map(Map(map_name))
+            return
 
-        # testing grid
-        # self.grid_test = GridTest.GridTest()
-        # self.grid_test.create()
-        # self.grid_test.load_projection_matrix(
-        #     self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER),
-        #     self.projection)
-        # self.grid_test.load_view_matrix(
-        #     self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER),
-        #     self.camera.view)
-
-        # imgui.open_popup("Save this map?")
-        # create a new map, before that if the map exists close it
-        # if self.current_map_entity != -1:
-        #     map_component = esper.component_for_entity(self.current_map_entity, MapComponent.MapComponent)
-        #     if map_component.map.is_dirty:
-        #         imgui.open_popup("Save this map?")
-        #
-        #     esper.delete_entity(self.current_map_entity)
-
+        self.show_inp_map_size_modal = asked_user_map_size
         pass
 
     def on_update(self, dt):
-        esper.process(dt)
-        # self.grid_test.render(self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER))
+        # esper.process(dt)
+        self.grid_test.render(self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER))
         pass
 
     def update_projection(self):
-        # self.grid_test.load_projection_matrix(
-        #     self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER),
-        #     self.projection)
+        self.grid_test.load_projection_matrix(
+            self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER),
+            self.projection)
         pass
 
     def update_view(self):
-        # self.grid_test.load_view_matrix(
-        #     self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER),
-        #     self.camera.view)
+        self.grid_test.load_view_matrix(
+            self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER),
+            self.camera.view)
         pass
 
     def run(self):
         self.init()
 
+        self.init_system()
+
         self.on_create()
+
+        gl.glClearColor(self.clear_color.x, self.clear_color.y, self.clear_color.z, self.clear_color.w)
 
         while not glfw.window_should_close(self.window):
             gl.glClear(gl.GL_COLOR_BUFFER_BIT)
@@ -299,13 +288,21 @@ class App:
 
             self.on_update(self.io.delta_time)
 
+            # # testing
+            # shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)
+            # shader.use()
+            # grid_data = esper.component_for_entity(2, GridComponent.GridComponent)
+            # gl.glBindVertexArray(grid_data.vao)
+            # gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+            # gl.glBindVertexArray(0)
+            # shader.stop()
+            # # end
+
             imgui.new_frame()
 
-            self.on_imgui_render()
+            # self.on_imgui_render()
 
-            show_test_window()
-
-            gl.glClearColor(self.clear_color.x, self.clear_color.y, self.clear_color.z, self.clear_color.w)
+            # show_test_window()
 
             imgui.render()
             self.impl.render(imgui.get_draw_data())
@@ -364,18 +361,20 @@ class App:
             clicked_new_map, selected_new_map = imgui.menu_item("New Map", None, False, True)
             clicked_save_map, selected_save_map = imgui.menu_item("Save Map", None, False, True)
             clicked_save_map_as, selected_save_map_as = imgui.menu_item("Save Map As", None, False, True)
-            clicked_load_map, selected_load_map = imgui.menu_item("Load Map", None, False, True)
+            clicked_load_map, selected_load_map = imgui.menu_item("Open Map", None, False, True)
             clicked_close_map, selected_close_map = imgui.menu_item("Close This Map", None, False, esper.list_worlds().__len__()>1)
             clicked_quit, selected_quit = imgui.menu_item("Quit", None, False, True)
 
             if clicked_new_map:
-                self.start_scene(self.get_new_world_name())
+                self.start_scene(self.get_new_world_name(), True)
             if clicked_save_map:
                 dy.log.info("Save map")
             if clicked_save_map_as:
                 dy.log.info("Save map as")
             if clicked_load_map:
-                dy.log.info("Load map")
+                testing_map_open = "test_map.txt"
+                if testing_map_open not in esper.list_worlds():
+                    self.init_map(Map(testing_map_open))
             if clicked_close_map:
                 if esper.list_worlds().__len__()>1:
                     cur_world = self.cur_world_name
@@ -425,43 +424,17 @@ class App:
 
         self.draw_editor_window()
 
-
-        if imgui.begin_popup_modal(
-                title="Delete?", visible=None, flags=imgui.WINDOW_ALWAYS_AUTO_RESIZE
-        )[0]:
-            imgui.text(
-                "All those beautiful files will be deleted.\nThis operation cannot be undone!\n\n"
-            )
-            imgui.separator()
-
-            # TODO -- figure out how to make the framepadding
-
-            # imgui.push_style_var(ImGuiStyleVar_FramePadding, ImVec2(0,0));
-            changed, context_menus_dont_ask_me_next_time = imgui.checkbox(
-                label="Don't ask me next time",
-            )
-
-        imgui.set_next_window_position(0, 20)
-        imgui.set_next_window_size(self.width, 20)
-        if imgui.begin("Map tab bar", True,
-                       imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE |
-                       imgui.WINDOW_NO_COLLAPSE | imgui.WINDOW_NO_TITLE_BAR):
-            with imgui.begin_tab_bar("MyTabBar") as tab_bar:
-                if tab_bar.opened:
-
-                    for (name) in esper.list_worlds():
-                        with imgui.begin_tab_item(name) as item:
-                            if item.selected:
-                                esper.switch_world(name)
-                                self.cur_world_name = name
-                                pass
-
-        imgui.end()
+        self.draw_map_tab()
 
         if self.has_error:
             imgui.open_popup("Error!")
 
-        # for error close all map
+        if self.show_inp_map_size_modal:
+            imgui.open_popup("Creat a new map")
+
+        self.draw_modal()
+
+    def draw_modal(self):
         if imgui.begin_popup_modal(
                 title="Error!", visible=True, flags=imgui.WINDOW_ALWAYS_AUTO_RESIZE
         )[0]:
@@ -478,11 +451,70 @@ class App:
             imgui.close_current_popup()
             self.has_error = False
 
+        if imgui.begin_popup_modal(
+                title="Creat a new map", visible=True, flags=imgui.WINDOW_ALWAYS_AUTO_RESIZE
+        )[0]:
+            imgui.text("Input map size")
+            self.map_inp_changed_i0, self.widgets_basic_i0 = imgui.input_int("width", self.widgets_basic_i0, 1, 100)
+            self.map_inp_changed_i1, self.widgets_basic_i1 = imgui.input_int("height", self.widgets_basic_i1, 1, 100)
+
+            if self.map_inp_changed_i0:
+                self.widgets_basic_i0 = max(10, self.widgets_basic_i0)
+                self.widgets_basic_i0 = min(50, self.widgets_basic_i0)
+
+            if self.map_inp_changed_i1:
+                self.widgets_basic_i1 = max(10, self.widgets_basic_i1)
+                self.widgets_basic_i1 = min(50, self.widgets_basic_i1)
+
+            imgui.separator()
+            if imgui.button(label="OK", width=120, height=0):
+                imgui.close_current_popup()
+                self.show_inp_map_size_modal = False
+                self.creating_new_map = True
+
+            imgui.set_item_default_focus()
+            imgui.same_line()
+            imgui.end_popup()
+        else:
+            # enable modal 'x' button to close
+            imgui.close_current_popup()
+            self.show_inp_map_size_modal = False
+
+    def draw_map_tab(self):
+        imgui.set_next_window_position(0, 20)
+        imgui.set_next_window_size(self.width, 20)
+        if imgui.begin("Map tab bar", True,
+                       imgui.WINDOW_NO_RESIZE | imgui.WINDOW_NO_MOVE |
+                       imgui.WINDOW_NO_COLLAPSE | imgui.WINDOW_NO_TITLE_BAR):
+            with imgui.begin_tab_bar("MyTabBar") as tab_bar:
+                if tab_bar.opened:
+
+                    for (name) in esper.list_worlds():
+                        with imgui.begin_tab_item(name) as item:
+                            if item.selected:
+                                self.load_map(name)
+                                pass
+        imgui.end()
+
     def init_system(self):
+        # cooking shaders
+        self.shader_manager.hard_load_all_shaders()
+
+        # change to EDITOR context (default)
+        self.change_context(self.Context.EDITOR)
+
+        self.cur_world_name = self.get_new_world_name()
         # create a new world with a name of our new default map
-        esper.switch_world(self.get_new_world_name())
+        # esper.switch_world(self.cur_world_name)
         # delete the default world
-        esper.delete_world("default")
+        # esper.delete_world("default")
+        # set current world name
+
+        for (name) in esper.list_worlds():
+            self.opened_map[name] = True
+
+        # add processor
+        # esper.add_processor(RenderProcessor.RenderProcessor(self))
         pass
 
     def get_new_world_name(self):
@@ -497,3 +529,50 @@ class App:
     def pop_up_error(self, message="None"):
         self.current_error_message = message
         self.has_error = True
+
+    def init_map(self, target_map):
+        # Note: each world has
+        # + exactly one map component
+        # + exactly one camera component (but rn we don't have camera component)
+        # + exactly one grid component
+        esper.switch_world(target_map.name)
+
+        # ===== create a map entity =====
+        new_map_entity = esper.create_entity()
+        esper.add_component(new_map_entity, MapComponent.MapComponent(target_map))
+        # todo add map shader
+        # ==================================
+
+        # ===== create a grid entity =====
+        new_grid_entity = esper.create_entity()
+        esper.add_component(new_grid_entity, ECS.Component.GridComponent.GridComponent(target_map.width, target_map.height))
+        grid_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)
+        esper.add_component(new_grid_entity, RenderComponent.RenderComponent(
+            grid_shader,
+            ShaderManager.ShaderType.GRID_SHADER
+        ))
+        self.update_proj_mat(grid_shader, "projection")
+        self.update_view_mat(grid_shader, "view")
+        # ==================================
+
+        # create a new world with the name of the target map
+        self.load_map(target_map.name)
+        pass
+
+    def load_map(self, world_name):
+        # esper context
+        esper.switch_world(world_name)
+        self.opened_map[world_name] = True
+        self.cur_world_name = world_name
+        pass
+
+    def update_view_mat(self, shader, uniform_name):
+        shader.use()
+        shader.set_mat4(uniform_name, self.camera.view)
+        shader.stop()
+
+    def update_proj_mat(self, shader, uniform_name):
+        shader.use()
+        shader.set_mat4(uniform_name, self.projection)
+        shader.stop()
+
