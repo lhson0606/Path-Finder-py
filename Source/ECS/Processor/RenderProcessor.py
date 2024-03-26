@@ -26,11 +26,6 @@ class RenderProcessor(esper.Processor):
 
     def render_as_grid(self, ent, shader: Shader):
         shader.use()
-
-        # todo: move this to App
-        shader.set_mat4("view", self.app.camera.view)
-        shader.set_mat4("projection", self.app.projection)
-
         grid_data = esper.component_for_entity(ent, GridComponent.GridComponent)
         gl.glBindVertexArray(grid_data.vao)
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))

@@ -31,6 +31,9 @@ in vec2 textCoords;
 
 out vec4 fragColor;
 
+uniform float gridWidth;
+uniform float gridHeight;
+
 void main()
 {
 	vec2 uv = textCoords;
@@ -42,7 +45,9 @@ void main()
 	vec3 col = vec3(0.9);
 	vec3 mate = vec3(1.0);
 
-	mate = vec3(0.2, 0.3, 0.3)*gridTextureGradBox( uv*50, ddx_uv, ddy_uv );
+	uv = vec2(uv.x*gridWidth, uv.y*gridHeight);
+
+	mate = vec3(0.2, 0.3, 0.3)*gridTextureGradBox( uv, ddx_uv, ddy_uv );
 	col = mate ;
 
 	fragColor = vec4( col, 1 );

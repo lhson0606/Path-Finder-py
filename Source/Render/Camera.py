@@ -2,7 +2,7 @@ import glm
 import enum
 import Source.Util.dy as dy
 
-POS = glm.vec3(25, 36, 0)
+POS = glm.vec3(11, 36, -5)
 DIR = glm.vec3(0, 0, 0) - POS
 
 MOVE_SPEED = 20
@@ -25,9 +25,9 @@ class Camera:
         DOWN = 5
 
     def __init__(self, pos=POS, up=WORLD_UP, yaw=YAW, pitch=PITCH):
-        self.pos = pos
-        self.dir = glm.normalize(DIR)
-        self.up = glm.normalize(up)
+        self.pos = glm.vec3(pos)
+        self.dir = glm.normalize(glm.vec3(DIR))
+        self.up = glm.normalize(glm.vec3(up))
         self.right = None
 
         self.yaw = yaw

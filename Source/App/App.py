@@ -23,6 +23,7 @@ import Source.ECS.Processor.RenderProcessor as RenderProcessor
 
 from OpenGL.GLU import *
 
+import Source.Map.MapContext as MapContext
 
 def mouse_btn_str(button):
     switcher = {
@@ -57,7 +58,7 @@ def cursor_position_callback(window, xpos, ypos):
         mouse_dx = xpos - app.mousePos.x
         mouse_dy = ypos - app.mousePos.y
 
-        app.camera.process_mouse_movement(mouse_dx, -mouse_dy)
+        app.cur_map_context.camera.process_mouse_movement(mouse_dx, -mouse_dy)
         app.update_view()
 
     app.mousePos = glm.vec2(xpos, ypos)
@@ -97,27 +98,27 @@ def process_input(window):
 
     if glfw.get_key(window, glfw.KEY_W) == glfw.PRESS:
         if app.context == app.Context.SCENE:
-            app.camera.process_keyboard(Camera.Camera.Movement.FORWARD, app.io.delta_time)
+            app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.FORWARD, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_S) == glfw.PRESS:
         if app.context == app.Context.SCENE:
-            app.camera.process_keyboard(Camera.Camera.Movement.BACKWARD, app.io.delta_time)
+            app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.BACKWARD, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_A) == glfw.PRESS:
         if app.context == app.Context.SCENE:
-            app.camera.process_keyboard(Camera.Camera.Movement.LEFT, app.io.delta_time)
+            app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.LEFT, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_D) == glfw.PRESS:
         if app.context == app.Context.SCENE:
-            app.camera.process_keyboard(Camera.Camera.Movement.RIGHT, app.io.delta_time)
+            app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.RIGHT, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_SPACE) == glfw.PRESS:
         if app.context == app.Context.SCENE:
-            app.camera.process_keyboard(Camera.Camera.Movement.UP, app.io.delta_time)
+            app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.UP, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
         if app.context == app.Context.SCENE:
-            app.camera.process_keyboard(Camera.Camera.Movement.DOWN, app.io.delta_time)
+            app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.DOWN, app.io.delta_time)
 
     if app.context == app.Context.SCENE:
         app.update_view()
@@ -161,13 +162,14 @@ class App:
         self.mousePos = glm.vec2(-1, -1)
         self.window = self.impl_glfw_init()
         self.shader_manager = ShaderManager.ShaderManager()
-        self.camera = Camera.Camera()
-        self.projection = glm.perspective(glm.radians(self.camera.fov), float(self.width) / self.height, 0.1, 500.0)
+        self.projection = glm.perspective(glm.radians(45), float(self.width) / self.height, 0.1, 500.0)
         self.mouse_first_time_enter = True
         self.context = None
 
         self.opened_map = {}
+        self.map_contexts = {}
         self.cur_world_name = None
+        self.cur_map_context = None
 
         # imgui modal state
         self.current_error_message = "None"
@@ -250,9 +252,13 @@ class App:
         pass
 
     def update_projection(self):
+        for e, render_component in esper.get_component(RenderComponent.RenderComponent):
+            cur_shader = render_component.shader
+            self.update_proj_mat(cur_shader, "projection")
         pass
 
     def update_view(self):
+        self.update_view_mat(self.cur_map_context.grid_shader, "view")
         pass
 
     def run(self):
@@ -362,6 +368,7 @@ class App:
                             break
                     esper.delete_world(cur_world)
                     self.opened_map.pop(cur_world)
+                    self.map_contexts.pop(cur_world)
 
             if clicked_quit:
                 glfw.set_window_should_close(self.window, True)
@@ -376,20 +383,20 @@ class App:
         imgui.begin("Editor", False, imgui.WINDOW_NO_RESIZE |
                     imgui.WINDOW_NO_MOVE)
         imgui.text("Debug")
-        checked, self.camera.will_print_camera_using_imgui = imgui.checkbox("Show camera info",
-                                                                            self.camera.will_print_camera_using_imgui)
-        if self.camera.will_print_camera_using_imgui:
+        checked, self.cur_map_context.camera.will_print_camera_using_imgui = imgui.checkbox("Show camera info",
+                                                                            self.cur_map_context.camera.will_print_camera_using_imgui)
+        if self.cur_map_context.camera.will_print_camera_using_imgui:
             imgui.set_next_window_position(self.width / 2 - 200,
                                            self.height / 2 - 200,
                                            imgui.FIRST_USE_EVER)
             imgui.begin("Camera Info", False)
-            imgui.text("Position: " + str(self.camera.pos))
-            imgui.text("Direction: " + str(self.camera.dir))
-            imgui.text("Up: " + str(self.camera.up))
-            imgui.text("Right: " + str(self.camera.right))
-            imgui.text("Yaw: " + str(self.camera.yaw))
-            imgui.text("Pitch: " + str(self.camera.pitch))
-            imgui.text("FOV: " + str(self.camera.fov))
+            imgui.text("Position: " + str(self.cur_map_context.camera.pos))
+            imgui.text("Direction: " + str(self.cur_map_context.camera.dir))
+            imgui.text("Up: " + str(self.cur_map_context.camera.up))
+            imgui.text("Right: " + str(self.cur_map_context.camera.right))
+            imgui.text("Yaw: " + str(self.cur_map_context.camera.yaw))
+            imgui.text("Pitch: " + str(self.cur_map_context.camera.pitch))
+            imgui.text("FOV: " + str(self.cur_map_context.camera.fov))
             imgui.end()
         imgui.end()
         pass
@@ -510,27 +517,29 @@ class App:
         # + exactly one map component
         # + exactly one camera component (but rn we don't have camera component)
         # + exactly one grid component
+        # + exactly one map context
+
+        # create new map context
+        new_map_context = MapContext.MapContext(target_map)
+        new_map_context.grid_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)
+        self.map_contexts[target_map.name] = new_map_context
+
+        # switch to the target map
         esper.switch_world(target_map.name)
+        self.cur_map_context = new_map_context
 
         # ===== add processors =====
         esper.add_processor(RenderProcessor.RenderProcessor(self))
 
-        # ===== create a map entity =====
-        new_map_entity = esper.create_entity()
-        esper.add_component(new_map_entity, MapComponent.MapComponent(target_map))
-        # todo add map shader
-        # ==================================
-
         # ===== create a grid entity =====
         new_grid_entity = esper.create_entity()
         esper.add_component(new_grid_entity, ECS.Component.GridComponent.GridComponent(target_map.width, target_map.height))
-        grid_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)
         esper.add_component(new_grid_entity, RenderComponent.RenderComponent(
-            grid_shader,
+            new_map_context.grid_shader,
             ShaderManager.ShaderType.GRID_SHADER
         ))
-        self.update_proj_mat(grid_shader, "projection")
-        self.update_view_mat(grid_shader, "view")
+        self.update_proj_mat(new_map_context.grid_shader, "projection")
+        self.update_view_mat(new_map_context.grid_shader, "view")
         # ==================================
 
         # create a new world with the name of the target map
@@ -541,12 +550,21 @@ class App:
         # esper context
         esper.switch_world(world_name)
         self.opened_map[world_name] = True
+        # map context
         self.cur_world_name = world_name
+        self.cur_map_context = self.map_contexts[world_name]
+        grid_shader = self.cur_map_context.grid_shader
+        grid_shader.use()
+        grid_shader.set_float("gridWidth", self.cur_map_context.map.width)
+        grid_shader.set_float("gridHeight", self.cur_map_context.map.height)
+        grid_shader.stop()
+
+        self.update_view_mat(grid_shader, "view")
         pass
 
     def update_view_mat(self, shader, uniform_name):
         shader.use()
-        shader.set_mat4(uniform_name, self.camera.view)
+        shader.set_mat4(uniform_name, self.cur_map_context.camera.view)
         shader.stop()
 
     def update_proj_mat(self, shader, uniform_name):
