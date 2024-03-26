@@ -21,7 +21,6 @@ from Source.Test.testwindow import show_test_window
 import Source.ECS.Processor.RenderProcessor as RenderProcessor
 
 
-import Source.Test.GridTest as GridTest
 from OpenGL.GLU import *
 
 
@@ -164,7 +163,6 @@ class App:
         self.shader_manager = ShaderManager.ShaderManager()
         self.camera = Camera.Camera()
         self.projection = glm.perspective(glm.radians(self.camera.fov), float(self.width) / self.height, 0.1, 500.0)
-        # self.grid_test = None
         self.mouse_first_time_enter = True
         self.context = None
 
@@ -181,9 +179,6 @@ class App:
         self.widgets_basic_i0 = 25
         self.widgets_basic_i1 = 25
 
-        self.creating_new_map = False
-
-        self.grid_test = None
     def prepare(self):
         pass
 
@@ -236,9 +231,7 @@ class App:
         pass
 
     def on_create(self):
-        # self.start_scene(self.cur_world_name, False)
-        self.grid_test = GridTest.GridTest()
-        self.grid_test.create()
+        self.start_scene(self.cur_world_name, False)
         pass
 
     def start_scene(self, map_name=None, asked_user_map_size=False):
@@ -253,20 +246,13 @@ class App:
         pass
 
     def on_update(self, dt):
-        # esper.process(dt)
-        self.grid_test.render(self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER))
+        esper.process(dt)
         pass
 
     def update_projection(self):
-        self.grid_test.load_projection_matrix(
-            self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER),
-            self.projection)
         pass
 
     def update_view(self):
-        self.grid_test.load_view_matrix(
-            self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER),
-            self.camera.view)
         pass
 
     def run(self):
@@ -288,21 +274,12 @@ class App:
 
             self.on_update(self.io.delta_time)
 
-            # # testing
-            # shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)
-            # shader.use()
-            # grid_data = esper.component_for_entity(2, GridComponent.GridComponent)
-            # gl.glBindVertexArray(grid_data.vao)
-            # gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
-            # gl.glBindVertexArray(0)
-            # shader.stop()
-            # # end
 
             imgui.new_frame()
 
-            # self.on_imgui_render()
+            self.on_imgui_render()
 
-            # show_test_window()
+            show_test_window()
 
             imgui.render()
             self.impl.render(imgui.get_draw_data())
@@ -470,7 +447,7 @@ class App:
             if imgui.button(label="OK", width=120, height=0):
                 imgui.close_current_popup()
                 self.show_inp_map_size_modal = False
-                self.creating_new_map = True
+                self.init_map(Map(self.get_new_world_name(), self.widgets_basic_i0, self.widgets_basic_i1))
 
             imgui.set_item_default_focus()
             imgui.same_line()
@@ -491,7 +468,7 @@ class App:
 
                     for (name) in esper.list_worlds():
                         with imgui.begin_tab_item(name) as item:
-                            if item.selected:
+                            if item.selected and self.cur_world_name != name:
                                 self.load_map(name)
                                 pass
         imgui.end()
@@ -505,16 +482,14 @@ class App:
 
         self.cur_world_name = self.get_new_world_name()
         # create a new world with a name of our new default map
-        # esper.switch_world(self.cur_world_name)
+        esper.switch_world(self.cur_world_name)
         # delete the default world
-        # esper.delete_world("default")
+        esper.delete_world("default")
         # set current world name
 
         for (name) in esper.list_worlds():
             self.opened_map[name] = True
 
-        # add processor
-        # esper.add_processor(RenderProcessor.RenderProcessor(self))
         pass
 
     def get_new_world_name(self):
@@ -536,6 +511,9 @@ class App:
         # + exactly one camera component (but rn we don't have camera component)
         # + exactly one grid component
         esper.switch_world(target_map.name)
+
+        # ===== add processors =====
+        esper.add_processor(RenderProcessor.RenderProcessor(self))
 
         # ===== create a map entity =====
         new_map_entity = esper.create_entity()

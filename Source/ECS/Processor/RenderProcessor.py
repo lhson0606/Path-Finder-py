@@ -28,8 +28,8 @@ class RenderProcessor(esper.Processor):
         shader.use()
 
         # todo: move this to App
-        # shader.set_mat4("view", self.app.camera.view)
-        # shader.set_mat4("projection", self.app.projection)
+        shader.set_mat4("view", self.app.camera.view)
+        shader.set_mat4("projection", self.app.projection)
 
         grid_data = esper.component_for_entity(ent, GridComponent.GridComponent)
         gl.glBindVertexArray(grid_data.vao)
