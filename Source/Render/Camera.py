@@ -2,7 +2,7 @@ import glm
 import enum
 import Source.Util.dy as dy
 
-POS = glm.vec3(11, 36, -5)
+POS = glm.vec3(12, -10, 16)
 DIR = glm.vec3(0, 0, 0) - POS
 
 MOVE_SPEED = 20
@@ -10,9 +10,9 @@ MOUSE_SENSITIVITY = 0.05
 PITCH_MAX_CONSTRAINT = 89.0
 PITCH_MIN_CONSTRAINT = -89.0
 FOV = 45.0
-PITCH = -60.0
-YAW = 90.0
-WORLD_UP = glm.vec3(0, 1, 0)
+PITCH = -40
+YAW = 90
+WORLD_UP = glm.vec3(0, 0, 1)
 
 
 class Camera:
@@ -45,8 +45,8 @@ class Camera:
 
     def update_camera_vectors(self):
         self.dir.x = glm.cos(glm.radians(self.yaw)) * glm.cos(glm.radians(self.pitch))
-        self.dir.y = glm.sin(glm.radians(self.pitch))
-        self.dir.z = glm.sin(glm.radians(self.yaw)) * glm.cos(glm.radians(self.pitch))
+        self.dir.y = glm.sin(glm.radians(self.yaw)) * glm.cos(glm.radians(self.pitch))
+        self.dir.z = glm.sin(glm.radians(self.pitch))
         self.dir = glm.normalize(self.dir)
 
         self.right = glm.normalize(glm.cross(self.dir, WORLD_UP))

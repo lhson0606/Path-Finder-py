@@ -21,6 +21,7 @@ class Shader:
         if not gl.glGetShaderiv(vertex, gl.GL_COMPILE_STATUS):
             info_log = gl.glGetShaderInfoLog(vertex)
             dy.log.error("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n", info_log)
+            raise Exception("Vertex shader compilation failed")
 
         fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
         gl.glShaderSource(fragment, fragment_code)
@@ -28,6 +29,7 @@ class Shader:
         if not gl.glGetShaderiv(fragment, gl.GL_COMPILE_STATUS):
             info_log = gl.glGetShaderInfoLog(fragment)
             dy.log.error("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n", info_log)
+            raise Exception("Fragment shader compilation failed")
 
         self.id = gl.glCreateProgram()
         gl.glAttachShader(self.id, vertex)
@@ -36,6 +38,7 @@ class Shader:
         if not gl.glGetProgramiv(self.id, gl.GL_LINK_STATUS):
             info_log = gl.glGetProgramInfoLog(self.id)
             dy.log.error("ERROR::SHADER::PROGRAM::LINKING_FAILED\n", info_log)
+            raise Exception("Shader linking failed")
         gl.glDeleteShader(vertex)
         gl.glDeleteShader(fragment)
 

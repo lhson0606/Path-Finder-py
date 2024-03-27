@@ -1,4 +1,5 @@
 import enum
+import os
 import sys
 
 import OpenGL.GL as gl
@@ -13,6 +14,7 @@ import Source.ECS.Component.MapComponent as MapComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.GridComponent as GridComponent
 import Source.Manager.ShaderManager as ShaderManager
+import Source.Map.Map
 import Source.Render.Camera as Camera
 import Source.Util.dy as dy
 from Source.Map.Map import Map
@@ -20,10 +22,13 @@ from Source.Test.testwindow import show_test_window
 
 import Source.ECS.Processor.RenderProcessor as RenderProcessor
 
-
 from OpenGL.GLU import *
 
+import tkinter as tk
+from tkinter import filedialog
+
 import Source.Map.MapContext as MapContext
+
 
 def mouse_btn_str(button):
     switcher = {
@@ -41,9 +46,9 @@ def key_callback(window, key, scancode, action, mods):
     app = glfw.get_window_user_pointer(window)
 
     if action == glfw.PRESS:
-        app.key_pressed = chr(key)
+        app.key_pressed = str(key)
     elif action == glfw.RELEASE:
-        app.key_released = chr(key)
+        app.key_released = str(key)
 
 
 def cursor_position_callback(window, xpos, ypos):
@@ -57,8 +62,8 @@ def cursor_position_callback(window, xpos, ypos):
 
         mouse_dx = xpos - app.mousePos.x
         mouse_dy = ypos - app.mousePos.y
-
-        app.cur_map_context.camera.process_mouse_movement(mouse_dx, -mouse_dy)
+        # we are using Oz as the up axis and Ox as the right axis
+        app.cur_map_context.camera.process_mouse_movement(-mouse_dx, -mouse_dy)
         app.update_view()
 
     app.mousePos = glm.vec2(xpos, ypos)
@@ -75,7 +80,7 @@ def frame_buffer_size_callback(window, width, height):
     gl.glViewport(0, 0, width, height)
     app.width = width
     app.height = height
-    app.projection = glm.perspective(glm.radians(app.camera.fov), float(width) / height, 0.1, 500.0)
+    app.projection = glm.perspective(glm.radians(app.cur_map_context.camera.fov), float(width) / height, 0.1, 500.0)
     app.update_projection()
 
 
@@ -280,7 +285,6 @@ class App:
 
             self.on_update(self.io.delta_time)
 
-
             imgui.new_frame()
 
             self.on_imgui_render()
@@ -345,7 +349,8 @@ class App:
             clicked_save_map, selected_save_map = imgui.menu_item("Save Map", None, False, True)
             clicked_save_map_as, selected_save_map_as = imgui.menu_item("Save Map As", None, False, True)
             clicked_load_map, selected_load_map = imgui.menu_item("Open Map", None, False, True)
-            clicked_close_map, selected_close_map = imgui.menu_item("Close This Map", None, False, esper.list_worlds().__len__()>1)
+            clicked_close_map, selected_close_map = imgui.menu_item("Close This Map", None, False,
+                                                                    esper.list_worlds().__len__() > 1)
             clicked_quit, selected_quit = imgui.menu_item("Quit", None, False, True)
 
             if clicked_new_map:
@@ -355,16 +360,24 @@ class App:
             if clicked_save_map_as:
                 dy.log.info("Save map as")
             if clicked_load_map:
-                testing_map_open = "test_map.txt"
-                if testing_map_open not in esper.list_worlds():
-                    self.init_map(Map(testing_map_open))
+                # reference: https://stackoverflow.com/questions/31122704/specify-file-path-in-tkinter-file-dialog
+                root = tk.Tk()
+                root.withdraw()
+                file_path = filedialog.askopenfilename(
+                    initialdir=os.path.join(os.getcwd(), Source.Map.Map.DEFAULT_MAP_DIR))
+                if file_path != "":
+                    # remove this switch world in the future (I'm too lazy rn):
+                    new_map = Source.Map.Map.open_existed_map(file_path)
+                    if new_map.name not in esper.list_worlds():
+                        self.init_map(new_map)
+                    else:
+                        dy.log.warning("Map \'" + new_map.name + "\' is already opened!")
             if clicked_close_map:
-                if esper.list_worlds().__len__()>1:
+                if esper.list_worlds().__len__() > 1:
                     cur_world = self.cur_world_name
                     for next_world in esper.list_worlds():
                         if next_world != cur_world:
-                            esper.switch_world(next_world)
-                            self.cur_world_name = next_world
+                            self.load_map(next_world)
                             break
                     esper.delete_world(cur_world)
                     self.opened_map.pop(cur_world)
@@ -384,7 +397,7 @@ class App:
                     imgui.WINDOW_NO_MOVE)
         imgui.text("Debug")
         checked, self.cur_map_context.camera.will_print_camera_using_imgui = imgui.checkbox("Show camera info",
-                                                                            self.cur_map_context.camera.will_print_camera_using_imgui)
+                                                                                            self.cur_map_context.camera.will_print_camera_using_imgui)
         if self.cur_map_context.camera.will_print_camera_using_imgui:
             imgui.set_next_window_position(self.width / 2 - 200,
                                            self.height / 2 - 200,
@@ -521,6 +534,8 @@ class App:
 
         # create new map context
         new_map_context = MapContext.MapContext(target_map)
+        new_map_context.camera.pos.x = target_map.width / 2
+        new_map_context.camera.update_camera_vectors()
         new_map_context.grid_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)
         self.map_contexts[target_map.name] = new_map_context
 
@@ -533,7 +548,8 @@ class App:
 
         # ===== create a grid entity =====
         new_grid_entity = esper.create_entity()
-        esper.add_component(new_grid_entity, ECS.Component.GridComponent.GridComponent(target_map.width, target_map.height))
+        esper.add_component(new_grid_entity,
+                            ECS.Component.GridComponent.GridComponent(target_map.width, target_map.height))
         esper.add_component(new_grid_entity, RenderComponent.RenderComponent(
             new_map_context.grid_shader,
             ShaderManager.ShaderType.GRID_SHADER
@@ -541,6 +557,13 @@ class App:
         self.update_proj_mat(new_map_context.grid_shader, "projection")
         self.update_view_mat(new_map_context.grid_shader, "view")
         # ==================================
+
+        # load map data
+        if not target_map.is_draft:
+            dy.log.info("Loading \'" + target_map.name + "\' data")
+            target_map.load(ShaderManager.ShaderType.SHAPE_SHADER, self.shader_manager.get_shader(
+                ShaderManager.ShaderType.SHAPE_SHADER
+            ))
 
         # create a new world with the name of the target map
         self.load_map(target_map.name)
@@ -571,4 +594,3 @@ class App:
         shader.use()
         shader.set_mat4(uniform_name, self.projection)
         shader.stop()
-

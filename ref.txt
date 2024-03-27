@@ -5,8 +5,12 @@ raycast:
 lib:
 	PyGLM
 	PyOpenGL
-	PyImgui
+	imgui
 	numpy
 	glfw
 	esper
 	colorLog
+	tk (file dialog)
+	
+	
+each map has its own shader_manager?

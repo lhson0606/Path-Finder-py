@@ -56,9 +56,9 @@ class GridTest:
 
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
-    def load_projection_matrix(self, shader: Shader, projection: glm.mat4):
+    def load_projection_matrix(self, shader: Shader, inp_projection: glm.mat4):
         shader.use()
-        shader.set_mat4("projection", projection)
+        shader.set_mat4("projection", inp_projection)
         shader.stop()
 
     def load_view_matrix(self, shader: Shader, view: glm.mat4):

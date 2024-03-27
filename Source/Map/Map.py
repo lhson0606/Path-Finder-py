@@ -1,43 +1,90 @@
+import esper
+
 import Source.Util.dy as dy
+import glm
+
+import Source.ECS.Component.ShapeComponent as ShapeComponent
+import Source.ECS.Component.RenderComponent as RenderComponent
+import Source.Manager.ShaderManager as ShaderManager
+import Source.Render.Shader as Shader
 
 DEFAULT_MAP_DIR = "Resources/Map/"
 DEFAULT_MAP_NAME = "map"
 
 
-def open_existed_map(name):
-    if not dy.file_exists(DEFAULT_MAP_DIR + name):
-        dy.log.error("Map not found: " + name)
-        return None
+def get_map_name(full_path):
+    return full_path.split("/")[-1]
 
-    with open(DEFAULT_MAP_DIR + name) as file:
-        lines = file.readlines()
 
-    map = Map(name)
-    map.width = int(lines[0].split(" ")[0])
-    map.height = int(lines[0].split(" ")[1])
+def open_existed_map(full_path):
+    if not dy.file_exists(full_path):
+        raise FileNotFoundError("File not found: " + full_path)
 
-    for i in range(1, len(lines)):
-        line = lines[i].strip()
-        for j in range(len(line)):
-            pass
-
-    return map
+    a_map = Map(get_map_name(full_path))
+    a_map.is_draft = False
+    a_map.full_path = full_path
+    return a_map
 
 
 class Map:
 
-    def __init__(self, name, w=25, h=25):
+    def __init__(self, name, w=25, h=25, l=1):
         self.name = name
         self.width = w
         self.height = h
+        self.length = l
         self.is_dirty = False
+        self.start = glm.ivec2(0, 0)
+        self.goal = glm.ivec2(0, 0)
+        self.shape_count = 0
+        self.full_path = DEFAULT_MAP_DIR + name
+        self.is_draft = True
 
     def create(self):
         count = 0
 
         pass
 
-    def load(self):
+    def load(self, shader_type: ShaderManager.ShaderType, shape_shader: Shader):
+        with open(self.full_path) as file:
+            lines = file.readlines()
+
+        try:
+            for i in range(len(lines)):
+                lines[i] = lines[i].replace("\n", "")
+                lines[i] = lines[i].replace("\r", "")
+                lines[i] = lines[i].replace(" ", "")
+
+            if lines[0].split(",").__len__() != 2:
+                raise ValueError("Not implemented map format: " + lines[0])
+            self.width = int(lines[0].split(",")[0])
+            self.height = int(lines[0].split(",")[1])
+            self.start = glm.ivec2(int(lines[1].split(",")[0]), int(lines[1].split(",")[1]))
+            self.goal = glm.ivec2(int(lines[1].split(",")[2]), int(lines[1].split(",")[3]))
+
+            shape_count = int(lines[2].split(",")[0])
+
+            for i in range(0, shape_count):
+                line = lines[i + 3].strip()
+                shape_data = line.split(",")
+                if len(shape_data) == 0 or len(shape_data) % 2 != 0:
+                    raise ValueError("Invalid shape data: " + line)
+                pivots = []
+                for j in range(0, len(shape_data), 2):
+                    pivots.append(glm.ivec3(int(shape_data[j]), int(shape_data[j + 1]), 0))
+
+                # new_shape_ent = esper.create_entity()
+                # shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots)
+                # shape_comp.gl_init()
+                # render_comp = RenderComponent.RenderComponent(shape_shader, shader_type)
+                # esper.add_component(new_shape_ent, shape_comp)
+                # esper.add_component(new_shape_ent, render_comp)
+
+                # dy.log.info("Shape: " + str(shape_comp.cubes))
+
+
+        except Exception as e:
+            raise ValueError("Invalid map file: " + str(self.full_path) + " " + str(e))
         pass
 
     def save(self):

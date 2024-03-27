@@ -8,8 +8,8 @@ VERTICES = numpy.array([
         # width         #height
         0,      0,      0,
         1,      0,      0,
-        1,      0,      1,
-        0,      0,      1,
+        1,      1,      0,
+        0,      1,      0,
     ], dtype=numpy.float32)
 
 TEXT_COORDS = numpy.array([
@@ -29,8 +29,8 @@ def get_vertices(width, height):
     return numpy.array([
         0, 0, 0,
         width, 0, 0,
-        width, 0, height,
-        0, 0, height,
+        width, height, 0,
+        0, height, 0,
     ], dtype=numpy.float32)
 
 
