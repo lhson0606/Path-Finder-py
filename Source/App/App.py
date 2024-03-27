@@ -21,6 +21,7 @@ from Source.Map.Map import Map
 from Source.Test.testwindow import show_test_window
 
 import Source.ECS.Processor.RenderProcessor as RenderProcessor
+from Source.Map.Map import open_existed_map
 
 from OpenGL.GLU import *
 
@@ -238,7 +239,7 @@ class App:
         pass
 
     def on_create(self):
-        self.start_scene(self.cur_world_name, False)
+        self.init_map(open_existed_map(self.DEFAULT_MAP_DIR + "map1.txt"))
         pass
 
     def start_scene(self, map_name=None, asked_user_map_size=False):
@@ -500,16 +501,6 @@ class App:
         # change to EDITOR context (default)
         self.change_context(self.Context.EDITOR)
 
-        self.cur_world_name = self.get_new_world_name()
-        # create a new world with a name of our new default map
-        esper.switch_world(self.cur_world_name)
-        # delete the default world
-        esper.delete_world("default")
-        # set current world name
-
-        for (name) in esper.list_worlds():
-            self.opened_map[name] = True
-
         pass
 
     def get_new_world_name(self):
@@ -532,16 +523,12 @@ class App:
         # + exactly one grid component
         # + exactly one map context
 
+        self.cur_map_context = MapContext.MapContext(target_map)
         # create new map context
-        new_map_context = MapContext.MapContext(target_map)
-        new_map_context.camera.pos.x = target_map.width / 2
-        new_map_context.camera.update_camera_vectors()
-        new_map_context.grid_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)
-        self.map_contexts[target_map.name] = new_map_context
-
-        # switch to the target map
-        esper.switch_world(target_map.name)
-        self.cur_map_context = new_map_context
+        self.cur_map_context.camera.pos.x = target_map.width / 2
+        self.cur_map_context.camera.update_camera_vectors()
+        self.cur_map_context.grid_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)
+        self.map_contexts[target_map.name] = self.cur_map_context
 
         # ===== add processors =====
         esper.add_processor(RenderProcessor.RenderProcessor(self))
@@ -551,11 +538,15 @@ class App:
         esper.add_component(new_grid_entity,
                             ECS.Component.GridComponent.GridComponent(target_map.width, target_map.height))
         esper.add_component(new_grid_entity, RenderComponent.RenderComponent(
-            new_map_context.grid_shader,
+            self.cur_map_context.grid_shader,
             ShaderManager.ShaderType.GRID_SHADER
         ))
-        self.update_proj_mat(new_map_context.grid_shader, "projection")
-        self.update_view_mat(new_map_context.grid_shader, "view")
+        self.update_proj_mat(self.cur_map_context.grid_shader, "projection")
+        self.update_view_mat(self.cur_map_context.grid_shader, "view")
+        self.cur_map_context.grid_shader.use()
+        self.cur_map_context.grid_shader.set_float("gridWidth", target_map.width)
+        self.cur_map_context.grid_shader.set_float("gridHeight", target_map.height)
+        self.cur_map_context.grid_shader.stop()
         # ==================================
 
         # load map data
@@ -566,23 +557,10 @@ class App:
             ))
 
         # create a new world with the name of the target map
-        self.load_map(target_map.name)
+        # self.load_map("default")
         pass
 
     def load_map(self, world_name):
-        # esper context
-        esper.switch_world(world_name)
-        self.opened_map[world_name] = True
-        # map context
-        self.cur_world_name = world_name
-        self.cur_map_context = self.map_contexts[world_name]
-        grid_shader = self.cur_map_context.grid_shader
-        grid_shader.use()
-        grid_shader.set_float("gridWidth", self.cur_map_context.map.width)
-        grid_shader.set_float("gridHeight", self.cur_map_context.map.height)
-        grid_shader.stop()
-
-        self.update_view_mat(grid_shader, "view")
         pass
 
     def update_view_mat(self, shader, uniform_name):
