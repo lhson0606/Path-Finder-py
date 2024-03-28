@@ -9,6 +9,8 @@ import Source.ECS.Component.TransformComponent as TransformComponent
 
 import Source.Algorithm.AStarNoWall as AStarNoWall
 
+import Source.Util.dy as dy
+
 
 def add_cube(shape_entity, position: glm.vec3):
     new_cube_entity = esper.create_entity()
@@ -33,7 +35,9 @@ def build_cubes(shape_ent, pivots, cube_position):
 
         nodes = AStarNoWall.a_star_search(pivots[-1], pivots[0])
         for node in nodes:
-            cubes.append(add_cube(shape_ent, node))
+            if node not in cube_position:
+                cube_position.append(node)
+                cubes.append(add_cube(shape_ent, node))
 
     return cubes
     pass
@@ -50,7 +54,10 @@ class ShapeComponent:
         self.vbo_pos = -1
         self.vbo_tex = -1
         self.vbo_normal = -1
-        self.vbo_model = -1
+        self.vbo_model_col_0 = -1
+        self.vbo_model_col_1 = -1
+        self.vbo_model_col_2 = -1
+        self.vbo_model_col_3 = -1
         self.ebo = -1
         self.vertex_count = len(self.cubes) * 36
 
@@ -59,7 +66,10 @@ class ShapeComponent:
         self.vbo_pos = gl.glGenBuffers(1)
         self.vbo_tex = gl.glGenBuffers(1)
         self.vbo_normal = gl.glGenBuffers(1)
-        self.vbo_model = gl.glGenBuffers(1)
+        self.vbo_model_col_0 = gl.glGenBuffers(1)
+        self.vbo_model_col_1 = gl.glGenBuffers(1)
+        self.vbo_model_col_2 = gl.glGenBuffers(1)
+        self.vbo_model_col_3 = gl.glGenBuffers(1)
         self.ebo = gl.glGenBuffers(1)
 
         gl.glBindVertexArray(self.vao)
@@ -79,17 +89,25 @@ class ShapeComponent:
         gl.glVertexAttribPointer(2, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, ctypes.c_void_p(0))
         gl.glEnableVertexAttribArray(2)
 
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model)
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, self.get_batch_transform_data(), gl.GL_STATIC_DRAW)
-        for i in range(4):
-            gl.glEnableVertexAttribArray(i + 3)
-
-            # Specify the format of your mat4 data
-            gl.glVertexAttribPointer(i + 3, 4, gl.GL_FLOAT, gl.GL_FALSE, 64, ctypes.c_void_p(i * 16))
-
-            # Tell OpenGL that this is instanced data
-            gl.glVertexAttribDivisor(i + 3, 1)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model_col_0)
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, self.get_batch_transform_data(0), gl.GL_STATIC_DRAW)
+        gl.glVertexAttribPointer(3, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, ctypes.c_void_p(0))
         gl.glEnableVertexAttribArray(3)
+
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model_col_1)
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, self.get_batch_transform_data(1), gl.GL_STATIC_DRAW)
+        gl.glVertexAttribPointer(4, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, ctypes.c_void_p(0))
+        gl.glEnableVertexAttribArray(4)
+
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model_col_2)
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, self.get_batch_transform_data(2), gl.GL_STATIC_DRAW)
+        gl.glVertexAttribPointer(5, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, ctypes.c_void_p(0))
+        gl.glEnableVertexAttribArray(5)
+
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model_col_3)
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, self.get_batch_transform_data(3), gl.GL_STATIC_DRAW)
+        gl.glVertexAttribPointer(6, 4, gl.GL_FLOAT, gl.GL_FALSE, 0, ctypes.c_void_p(0))
+        gl.glEnableVertexAttribArray(6)
 
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.ebo)
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, self.get_batch_indices_data(), gl.GL_STATIC_DRAW)
@@ -120,21 +138,26 @@ class ShapeComponent:
 
         return normals
 
-    def get_batch_transform_data(self):
+    def get_batch_transform_data(self, col: int):
         transforms = np.array([], dtype=np.float32)
-
         for cube in self.cubes:
             cube_transform = esper.component_for_entity(cube,
                                                         TransformComponent.TransformComponent).get_world_transform()
-            transforms = np.append(transforms, cube_transform)
+            print(str(cube_transform))
+            for j in range(24):
+                transforms = np.append(transforms, cube_transform[col])
+
+
 
         return transforms
 
     def get_batch_indices_data(self):
         indices = np.array([], dtype=np.uint32)
+        count = 0
 
         for cube in self.cubes:
-            indices = np.append(indices, CubeComponent.INDICES + len(indices))
+            indices = np.append(indices, CubeComponent.INDICES + 24*count)
+            count += 1
 
         return indices
 

@@ -314,7 +314,9 @@ class App:
         # set current context
         glfw.set_window_user_pointer(self.window, self)
         # ENABLE ALPHA BLENDING
-        gl.glEnable(gl.GL_BLEND)
+        # gl.glEnable(gl.GL_BLEND)
+        # depth test
+        gl.glEnable(gl.GL_DEPTH_TEST)
 
     def on_close(self):
         self.impl.shutdown()
