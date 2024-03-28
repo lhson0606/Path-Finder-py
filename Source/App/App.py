@@ -314,6 +314,10 @@ class App:
         glfw.set_window_user_pointer(self.window, self)
         # ENABLE ALPHA BLENDING
         gl.glEnable(gl.GL_BLEND)
+        # set the blend function
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        # depth test
+        gl.glEnable(gl.GL_DEPTH_TEST)
 
     def on_close(self):
         self.impl.shutdown()

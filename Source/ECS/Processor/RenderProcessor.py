@@ -9,6 +9,8 @@ import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.Render.Shader as Shader
 from Source.Manager.ShaderManager import ShaderType as ShaderType
 
+import glm
+
 
 class RenderProcessor(esper.Processor):
     def __init__(self, app: App):
@@ -29,6 +31,8 @@ class RenderProcessor(esper.Processor):
 
     def render_as_grid(self, ent, shader: Shader):
         shader.use()
+        shader.set_mat4("view", self.app.cur_map_context.camera.view)
+        shader.set_mat4("projection", self.app.projection)
         grid_data = esper.component_for_entity(ent, GridComponent.GridComponent)
         gl.glBindVertexArray(grid_data.vao)
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
@@ -43,7 +47,8 @@ class RenderProcessor(esper.Processor):
         shader.set_mat4("projection", self.app.projection)
         shape_data = esper.component_for_entity(ent, ShapeComponent.ShapeComponent)
         gl.glBindVertexArray(shape_data.vao)
-        gl.glDrawArrays(gl.GL_TRIANGLES, 0, shape_data.vertex_count)
+        # gl.glDrawArrays(gl.GL_TRIANGLES, 0, shape_data.vertex_count)
+        gl.glDrawElements(gl.GL_TRIANGLES, shape_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
         gl.glBindVertexArray(0)
         shader.stop()
         pass

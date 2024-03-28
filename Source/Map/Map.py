@@ -73,14 +73,14 @@ class Map:
                 for j in range(0, len(shape_data), 2):
                     pivots.append(glm.ivec3(int(shape_data[j]), int(shape_data[j + 1]), 0))
 
-                # new_shape_ent = esper.create_entity()
-                # shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots)
-                # shape_comp.gl_init()
-                # render_comp = RenderComponent.RenderComponent(shape_shader, shader_type)
-                # esper.add_component(new_shape_ent, shape_comp)
-                # esper.add_component(new_shape_ent, render_comp)
+                new_shape_ent = esper.create_entity()
+                shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots)
+                shape_comp.gl_init()
+                render_comp = RenderComponent.RenderComponent(shape_shader, shader_type)
+                esper.add_component(new_shape_ent, shape_comp)
+                esper.add_component(new_shape_ent, render_comp)
 
-                # dy.log.info("Shape: " + str(shape_comp.cubes))
+                dy.log.info("Shape: " + str(shape_comp.cubes))
 
 
         except Exception as e:
