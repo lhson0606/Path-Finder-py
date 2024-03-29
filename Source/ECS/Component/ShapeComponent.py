@@ -7,7 +7,7 @@ import ctypes
 import Source.ECS.Component.CubeComponent as CubeComponent
 import Source.ECS.Component.TransformComponent as TransformComponent
 
-import Source.Algorithm.AStarNoWall as AStarNoWall
+import Source.Algorithm.GreedyNoWall as GreedyNoWall
 
 import Source.Util.dy as dy
 
@@ -27,13 +27,13 @@ def build_cubes(shape_ent, pivots, cube_position):
         cubes.append(add_cube(shape_ent, pivots[0]))
     else:
         for i in range(0, len(pivots) - 1):
-            nodes = AStarNoWall.a_star_search(pivots[i], pivots[i + 1])
+            nodes = GreedyNoWall.a_star_search(pivots[i], pivots[i + 1])
             for node in nodes:
                 if node not in cube_position:
                     cube_position.append(node)
                     cubes.append(add_cube(shape_ent, node))
 
-        nodes = AStarNoWall.a_star_search(pivots[-1], pivots[0])
+        nodes = GreedyNoWall.a_star_search(pivots[-1], pivots[0])
         for node in nodes:
             if node not in cube_position:
                 cube_position.append(node)
@@ -143,11 +143,8 @@ class ShapeComponent:
         for cube in self.cubes:
             cube_transform = esper.component_for_entity(cube,
                                                         TransformComponent.TransformComponent).get_world_transform()
-            print(str(cube_transform))
             for j in range(24):
                 transforms = np.append(transforms, cube_transform[col])
-
-
 
         return transforms
 

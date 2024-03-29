@@ -47,8 +47,8 @@ void main()
 
 	uv = vec2(uv.x*gridWidth, uv.y*gridHeight);
 
-	mate = vec3(0.2, 0.3, 0.3)*gridTextureGradBox( uv, ddx_uv, ddy_uv );
+	mate = vec3(1, 1, 1)*gridTextureGradBox( uv, ddx_uv, ddy_uv );
 	col = mate ;
 
-	fragColor = vec4( col, 1 );
+	fragColor = vec4( col, 0.1 );
 }

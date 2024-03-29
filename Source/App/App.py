@@ -22,12 +22,10 @@ from Source.Test.testwindow import show_test_window
 
 import Source.ECS.Processor.RenderProcessor as RenderProcessor
 
-from OpenGL.GLU import *
-
 import tkinter as tk
 from tkinter import filedialog
 
-import Source.Map.MapContext as MapContext
+import Source.App.MapContext as MapContext
 
 
 def mouse_btn_str(button):
@@ -117,6 +115,14 @@ def process_input(window):
         if app.context == app.Context.SCENE:
             app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.RIGHT, app.io.delta_time)
 
+    if glfw.get_key(window, glfw.KEY_Q) == glfw.PRESS:
+        if app.context == app.Context.SCENE:
+            app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.LOCAL_UP, app.io.delta_time)
+
+    if glfw.get_key(window, glfw.KEY_E) == glfw.PRESS:
+        if app.context == app.Context.SCENE:
+            app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.LOCAL_DOWN, app.io.delta_time)
+
     if glfw.get_key(window, glfw.KEY_SPACE) == glfw.PRESS:
         if app.context == app.Context.SCENE:
             app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.UP, app.io.delta_time)
@@ -168,13 +174,6 @@ class App:
         self.window = self.impl_glfw_init()
         self.shader_manager = ShaderManager.ShaderManager()
         self.projection = glm.perspective(glm.radians(45), float(self.width) / self.height, 0.1, 500.0)
-        self.mouse_first_time_enter = True
-        self.context = None
-
-        self.opened_map = {}
-        self.map_contexts = {}
-        self.cur_world_name = None
-        self.cur_map_context = None
 
         # imgui modal state
         self.current_error_message = "None"
@@ -185,6 +184,16 @@ class App:
         self.map_inp_changed_i1 = True
         self.widgets_basic_i0 = 25
         self.widgets_basic_i1 = 25
+        self.will_show_ray_cast = False
+
+        # app state
+        self.mouse_first_time_enter = True
+        self.context = None
+        self.opened_map = {}
+        self.map_contexts = {}
+        self.cur_world_name = None
+        self.cur_map_context = None
+        self.opened_map_count = 0
 
     def prepare(self):
         pass
@@ -238,7 +247,13 @@ class App:
         pass
 
     def on_create(self):
-        self.start_scene(self.cur_world_name, False)
+        # create context for default world
+        new_map_context = MapContext.MapContext(None)
+        new_map_context.camera = Camera.Camera()
+        self.map_contexts["default"] = new_map_context
+        self.cur_map_context = new_map_context
+        new_map = Source.Map.Map.open_existed_map("I:\Repos\Python\Gizmo\Resources\Map\map1.txt")
+        self.init_map(new_map)
         pass
 
     def start_scene(self, map_name=None, asked_user_map_size=False):
@@ -257,13 +272,11 @@ class App:
         pass
 
     def update_projection(self):
-        for e, render_component in esper.get_component(RenderComponent.RenderComponent):
-            cur_shader = render_component.shader
-            self.update_proj_mat(cur_shader, "projection")
+        self.cur_map_context.update_projection(self.projection)
         pass
 
     def update_view(self):
-        self.update_view_mat(self.cur_map_context.grid_shader, "view")
+        self.cur_map_context.update_view()
         pass
 
     def run(self):
@@ -315,9 +328,10 @@ class App:
         # ENABLE ALPHA BLENDING
         gl.glEnable(gl.GL_BLEND)
         # set the blend function
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE)
         # depth test
         gl.glEnable(gl.GL_DEPTH_TEST)
+        # gl.glBlendFuncSeparate(-1, -1, -1, -1)
 
     def on_close(self):
         self.impl.shutdown()
@@ -377,15 +391,7 @@ class App:
                     else:
                         dy.log.warning("Map \'" + new_map.name + "\' is already opened!")
             if clicked_close_map:
-                if esper.list_worlds().__len__() > 1:
-                    cur_world = self.cur_world_name
-                    for next_world in esper.list_worlds():
-                        if next_world != cur_world:
-                            self.load_map(next_world)
-                            break
-                    esper.delete_world(cur_world)
-                    self.opened_map.pop(cur_world)
-                    self.map_contexts.pop(cur_world)
+                self.close_current_map()
 
             if clicked_quit:
                 glfw.set_window_should_close(self.window, True)
@@ -400,6 +406,8 @@ class App:
         imgui.begin("Editor", False, imgui.WINDOW_NO_RESIZE |
                     imgui.WINDOW_NO_MOVE)
         imgui.text("Debug")
+
+        # ====== Debug camera ======
         checked, self.cur_map_context.camera.will_print_camera_using_imgui = imgui.checkbox("Show camera info",
                                                                                             self.cur_map_context.camera.will_print_camera_using_imgui)
         if self.cur_map_context.camera.will_print_camera_using_imgui:
@@ -415,6 +423,29 @@ class App:
             imgui.text("Pitch: " + str(self.cur_map_context.camera.pitch))
             imgui.text("FOV: " + str(self.cur_map_context.camera.fov))
             imgui.end()
+
+        checked, self.will_show_ray_cast = imgui.checkbox("Show ray cast", self.will_show_ray_cast)
+
+        # ====== Debug ray ======
+        if self.will_show_ray_cast:
+            imgui.begin("Ray cast", False)
+            ray_dir = dy.cast_ray(self.mousePos.x, self.mousePos.y, self.width, self.height,
+                                  self.cur_map_context.camera.view, self.projection)
+            imgui.text("Ray direction: " + str(ray_dir))
+            ground_level = 0
+            ray_origin = self.cur_map_context.camera.pos
+            if ray_dir.z == 0:
+                imgui.text("Intersection: Ray is parallel to the ground")
+                imgui.text("Tile: None")
+                imgui.end()
+            else:
+                t = (ground_level - ray_origin.z) / ray_dir.z
+                intersection = ray_origin + t * ray_dir
+                imgui.text("Intersection: " + str(intersection))
+                tile = glm.ivec2(dy.round_away_from_zero(intersection.x), dy.round_away_from_zero(intersection.y))
+                imgui.text("Tile: " + str(tile))
+                imgui.end()
+
         imgui.end()
         pass
 
@@ -490,11 +521,14 @@ class App:
             with imgui.begin_tab_bar("MyTabBar") as tab_bar:
                 if tab_bar.opened:
 
-                    for (name) in esper.list_worlds():
-                        with imgui.begin_tab_item(name) as item:
-                            if item.selected and self.cur_world_name != name:
-                                self.load_map(name)
-                                pass
+                    if not self.opened_map_count == 0:
+                        for (name) in esper.list_worlds():
+                            if name == "default":
+                                continue
+                            with imgui.begin_tab_item(name) as item:
+                                if item.selected and self.cur_world_name != name:
+                                    self.load_map(name)
+                                    pass
         imgui.end()
 
     def init_system(self):
@@ -503,16 +537,6 @@ class App:
 
         # change to EDITOR context (default)
         self.change_context(self.Context.EDITOR)
-
-        self.cur_world_name = self.get_new_world_name()
-        # create a new world with a name of our new default map
-        esper.switch_world(self.cur_world_name)
-        # delete the default world
-        esper.delete_world("default")
-        # set current world name
-
-        for (name) in esper.list_worlds():
-            self.opened_map[name] = True
 
         pass
 
@@ -536,6 +560,13 @@ class App:
         # + exactly one grid component
         # + exactly one map context
 
+        if target_map.name == "default":
+            self.pop_up_error("Map name is not allowed to be \'default\'")
+            return
+
+        # update map count
+        self.opened_map_count += 1
+
         # create new map context
         new_map_context = MapContext.MapContext(target_map)
         new_map_context.camera.pos.x = target_map.width / 2
@@ -548,7 +579,16 @@ class App:
         self.cur_map_context = new_map_context
 
         # ===== add processors =====
-        esper.add_processor(RenderProcessor.RenderProcessor(self))
+        render_processor = RenderProcessor.RenderProcessor(self)
+        esper.add_processor(render_processor)
+        new_map_context.render_processor = render_processor
+
+        # load map data
+        if not target_map.is_draft:
+            dy.log.info("Loading \'" + target_map.name + "\' data")
+            target_map.load(ShaderManager.ShaderType.SHAPE_SHADER, self.shader_manager.get_shader(
+                ShaderManager.ShaderType.SHAPE_SHADER
+            ))
 
         # ===== create a grid entity =====
         new_grid_entity = esper.create_entity()
@@ -558,16 +598,7 @@ class App:
             new_map_context.grid_shader,
             ShaderManager.ShaderType.GRID_SHADER
         ))
-        self.update_proj_mat(new_map_context.grid_shader, "projection")
-        self.update_view_mat(new_map_context.grid_shader, "view")
         # ==================================
-
-        # load map data
-        if not target_map.is_draft:
-            dy.log.info("Loading \'" + target_map.name + "\' data")
-            target_map.load(ShaderManager.ShaderType.SHAPE_SHADER, self.shader_manager.get_shader(
-                ShaderManager.ShaderType.SHAPE_SHADER
-            ))
 
         # create a new world with the name of the target map
         self.load_map(target_map.name)
@@ -576,25 +607,29 @@ class App:
     def load_map(self, world_name):
         # esper context
         esper.switch_world(world_name)
+
+        if (world_name == "default"):
+            return
+
         self.opened_map[world_name] = True
         # map context
         self.cur_world_name = world_name
         self.cur_map_context = self.map_contexts[world_name]
-        grid_shader = self.cur_map_context.grid_shader
-        grid_shader.use()
-        grid_shader.set_float("gridWidth", self.cur_map_context.map.width)
-        grid_shader.set_float("gridHeight", self.cur_map_context.map.height)
-        grid_shader.stop()
-
-        self.update_view_mat(grid_shader, "view")
+        # todo: should call something like render_processor.update_grid
+        self.cur_map_context.load_context(self.projection)
         pass
 
-    def update_view_mat(self, shader, uniform_name):
-        shader.use()
-        shader.set_mat4(uniform_name, self.cur_map_context.camera.view)
-        shader.stop()
+    def close_current_map(self):
+        cur_world = self.cur_world_name
 
-    def update_proj_mat(self, shader, uniform_name):
-        shader.use()
-        shader.set_mat4(uniform_name, self.projection)
-        shader.stop()
+        if esper.list_worlds().__len__() > 1:
+            for next_world in esper.list_worlds():
+                if next_world != cur_world:
+                    self.load_map(next_world)
+                    break
+            esper.delete_world(cur_world)
+            self.opened_map.pop(cur_world)
+            self.map_contexts.pop(cur_world)
+            self.opened_map_count -= 1
+
+        pass

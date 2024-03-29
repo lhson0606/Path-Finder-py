@@ -27,10 +27,10 @@ INDICES = numpy.array([
 
 def get_vertices(width, height):
     return numpy.array([
-        0, 0, 0,
-        width, 0, 0,
-        width, height, 0,
-        0, height, 0,
+        0, 0, -0.01,
+        width, 0, -0.01,
+        width, height, -0.01,
+        0, height, -0.01,
     ], dtype=numpy.float32)
 
 

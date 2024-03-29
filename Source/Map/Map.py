@@ -80,9 +80,6 @@ class Map:
                 esper.add_component(new_shape_ent, shape_comp)
                 esper.add_component(new_shape_ent, render_comp)
 
-                dy.log.info("Shape: " + str(shape_comp.cubes))
-
-
         except Exception as e:
             raise ValueError("Invalid map file: " + str(self.full_path) + " " + str(e))
         pass

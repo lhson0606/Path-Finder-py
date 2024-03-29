@@ -53,7 +53,7 @@ def a_star_search(start: glm.ivec3, goal: glm.ivec3):
             if neighbor not in g_score.keys() or tentative_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = tentative_g_score
-                f_score[neighbor] = g_score[neighbor] + h(glm.vec3(neighbor), glm.vec3(goal))
+                f_score[neighbor] = h(glm.vec3(neighbor), glm.vec3(goal))
 
                 if neighbor not in open_set:
                     heapq.heappush(open_set, (f_score[neighbor], neighbor))

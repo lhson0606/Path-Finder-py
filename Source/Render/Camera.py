@@ -23,6 +23,8 @@ class Camera:
         RIGHT = 3
         UP = 4
         DOWN = 5
+        LOCAL_UP = 6
+        LOCAL_DOWN = 7
 
     def __init__(self, pos=POS, up=WORLD_UP, yaw=YAW, pitch=PITCH):
         self.pos = glm.vec3(pos)
@@ -84,6 +86,10 @@ class Camera:
             self.pos += WORLD_UP * velocity
         if direction == self.Movement.DOWN:
             self.pos -= WORLD_UP * velocity
+        if direction == self.Movement.LOCAL_UP:
+            self.pos += self.up * velocity
+        if direction == self.Movement.LOCAL_DOWN:
+            self.pos -= self.up * velocity
 
         self.update_camera_vectors()
         pass
