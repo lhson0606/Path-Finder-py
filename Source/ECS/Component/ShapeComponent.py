@@ -158,6 +158,51 @@ class ShapeComponent:
 
         return indices
 
+    def get_batch_picking_position(self):
+        position = np.array([], dtype=np.float32)
+
+        for cube in self.cubes:
+            position = np.append(position, CubeComponent.VERTICES)
+
+        return position
+
+    def get_batch_picking_normal(self):
+        normals = np.array([], dtype=np.float32)
+
+        for cube in self.cubes:
+            normals = np.append(normals, CubeComponent.NORMALS)
+
+        return normals
+
+    def get_batch_picking_id(self):
+        ids = np.array([], dtype=np.float32)
+
+        for cube in self.cubes:
+            for i in range(24):
+                ids = np.append(ids, np.float32(cube))
+
+        return ids
+
+    def get_batch_picking_transform(self, col):
+        transforms = np.array([], dtype=np.float32)
+        for cube in self.cubes:
+            cube_transform = esper.component_for_entity(cube,
+                                                        TransformComponent.TransformComponent).get_world_transform()
+            for j in range(24):
+                transforms = np.append(transforms, cube_transform[col])
+
+        return transforms
+
+    def get_batch_picking_indices(self):
+        indices = np.array([], dtype=np.uint32)
+        count = 0
+
+        for cube in self.cubes:
+            indices = np.append(indices, CubeComponent.INDICES + 24*count)
+            count += 1
+
+        return indices
+
     def clean_up(self):
         gl.glDeleteVertexArrays(1, self.vao)
         gl.glDeleteBuffers(1, self.vbo_pos)

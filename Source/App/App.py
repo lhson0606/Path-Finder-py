@@ -21,6 +21,7 @@ from Source.Map.Map import Map
 from Source.Test.testwindow import show_test_window
 
 import Source.ECS.Processor.RenderProcessor as RenderProcessor
+import Source.ECS.Processor.PickingProcessor as PickingProcessor
 
 import tkinter as tk
 from tkinter import filedialog
@@ -88,8 +89,8 @@ def mouse_scroll_callback(window, xoffset, yoffset):
     app.mouse_scroll = glm.vec2(xoffset, yoffset)
 
     if app.context == app.Context.SCENE:
-        app.camera.process_mouse_scroll(yoffset)
-        app.projection = glm.perspective(glm.radians(app.camera.fov), float(app.width) / app.height, 0.1, 500.0)
+        app.cur_map_context.camera.process_mouse_scroll(yoffset)
+        app.projection = glm.perspective(glm.radians(app.cur_map_context.camera.fov), float(app.width) / app.height, 0.1, 500.0)
         app.update_projection()
 
 
@@ -146,6 +147,13 @@ def mouse_button_callback(window, button, action, mods):
         app.mouse_btn_released = mouse_btn_str(button)
         if button == glfw.MOUSE_BUTTON_RIGHT:
             app.change_context(app.Context.EDITOR)
+
+    if action == glfw.PRESS:
+        app.mouse_btn_pressed = mouse_btn_str(button)
+        if button == glfw.MOUSE_BUTTON_LEFT and app.context == app.Context.EDITOR:
+            app.cur_map_context.picking_processor.pick(app.mousePos.x, app.mousePos.y)
+
+
 
 
 class App:
@@ -313,10 +321,10 @@ class App:
     def init(self):
         imgui.create_context()
         self.impl = GlfwRenderer(self.window)
-        glfw.set_char_callback(self.window, self.impl.char_callback)
-        glfw.set_cursor_pos_callback(self.window, self.impl.mouse_callback)
         self.io = imgui.get_io()
         # register our callbacks
+        glfw.set_char_callback(self.window, self.impl.char_callback)
+        glfw.set_cursor_pos_callback(self.window, self.impl.mouse_callback)
         glfw.set_key_callback(self.window, key_callback)
         glfw.set_cursor_pos_callback(self.window, cursor_position_callback)
         glfw.set_framebuffer_size_callback(self.window, frame_buffer_size_callback)
@@ -326,9 +334,9 @@ class App:
         # set current context
         glfw.set_window_user_pointer(self.window, self)
         # ENABLE ALPHA BLENDING
-        gl.glEnable(gl.GL_BLEND)
+        # gl.glEnable(gl.GL_BLEND)
         # set the blend function
-        gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE)
+        # gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE)
         # depth test
         gl.glEnable(gl.GL_DEPTH_TEST)
         # gl.glBlendFuncSeparate(-1, -1, -1, -1)
@@ -582,6 +590,10 @@ class App:
         render_processor = RenderProcessor.RenderProcessor(self)
         esper.add_processor(render_processor)
         new_map_context.render_processor = render_processor
+
+        picking_processor = PickingProcessor.PickingProcessor(self)
+        esper.add_processor(picking_processor)
+        new_map_context.picking_processor = picking_processor
 
         # load map data
         if not target_map.is_draft:

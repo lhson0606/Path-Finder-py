@@ -9,6 +9,7 @@ class MapContext:
     def __init__(self, inp_map):
         self.camera = Camera.Camera()
         self.render_processor = None
+        self.pick_processor = None
         self.map = inp_map
 
     def update_projection(self, projection):
