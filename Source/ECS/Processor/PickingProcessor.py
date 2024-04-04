@@ -15,6 +15,7 @@ import Source.ECS.Component.ShapeComponent as ShapeComponent
 
 import OpenGL.GL as gl
 
+
 class PickingProcessor(esper.Processor):
     def __init__(self, app: App):
         self.app = app
@@ -33,6 +34,7 @@ class PickingProcessor(esper.Processor):
 
         # disable blend?
 
+        gl.glClearColor(0.0, 0.0, 0.0, -1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
         for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
@@ -47,12 +49,14 @@ class PickingProcessor(esper.Processor):
         # read pixel data
         data = picking_frame.GetPickInfo(x, y)
 
-        dy.log.info("Picked data: " + str(data.entity))
+        # print id, normal of the cube
+        # dy.log.info("Picked entity: %s, normal (%s, %s, %s)", data.entity, data.x, data.y, data.z)
 
         self.picked_entity = data.entity
 
+        gl.glClearColor(self.app.clear_color.x, self.app.clear_color.y, self.app.clear_color.z, self.app.clear_color.w)
 
-        return self.picked_entity
+        return data
 
         pass
 
@@ -62,15 +66,17 @@ class PickingProcessor(esper.Processor):
 
     def render_as_shape(self, ent, shader):
         shape_data = esper.component_for_entity(ent, ShapeComponent.ShapeComponent)
-        vao = gl.glGenVertexArrays(1)
-        vbo_pos = gl.glGenBuffers(1)
-        vbo_normal = gl.glGenBuffers(1)
-        vbo_id = gl.glGenBuffers(1)
-        vbo_col0 = gl.glGenBuffers(1)
-        vbo_col1 = gl.glGenBuffers(1)
-        vbo_col2 = gl.glGenBuffers(1)
-        vbo_col3 = gl.glGenBuffers(1)
-        ebo = gl.glGenBuffers(1)
+        # convert to int or when we try to delete it later, it will throw an error
+        # prevent: TypeError: ('No array-type handler for type numpy.uintc (value: 6) registered', <OpenGL.converters.CallFuncPyConverter object at 0x000002719EB6C310>)
+        vao = int(gl.glGenVertexArrays(1))
+        vbo_pos = int(gl.glGenBuffers(1))
+        vbo_normal = int(gl.glGenBuffers(1))
+        vbo_id = int(gl.glGenBuffers(1))
+        vbo_col0 = int(gl.glGenBuffers(1))
+        vbo_col1 = int(gl.glGenBuffers(1))
+        vbo_col2 = int(gl.glGenBuffers(1))
+        vbo_col3 = int(gl.glGenBuffers(1))
+        ebo = int(gl.glGenBuffers(1))
 
         gl.glBindVertexArray(vao)
 
@@ -123,14 +129,14 @@ class PickingProcessor(esper.Processor):
         shader.stop()
 
         # clean up
-        # gl.glDeleteVertexArrays(1, vao)
-        # gl.glDeleteBuffers(1, vbo_pos)
-        # gl.glDeleteBuffers(1, vbo_normal)
-        # gl.glDeleteBuffers(1, vbo_id)
-        # gl.glDeleteBuffers(1, vbo_col0)
-        # gl.glDeleteBuffers(1, vbo_col1)
-        # gl.glDeleteBuffers(1, vbo_col2)
-        # gl.glDeleteBuffers(1, vbo_col3)
-        # gl.glDeleteBuffers(1, ebo)
+        gl.glDeleteVertexArrays(1, vao)
+        gl.glDeleteBuffers(1, vbo_pos)
+        gl.glDeleteBuffers(1, vbo_normal)
+        gl.glDeleteBuffers(1, vbo_id)
+        gl.glDeleteBuffers(1, vbo_col0)
+        gl.glDeleteBuffers(1, vbo_col1)
+        gl.glDeleteBuffers(1, vbo_col2)
+        gl.glDeleteBuffers(1, vbo_col3)
+        gl.glDeleteBuffers(1, ebo)
 
         pass

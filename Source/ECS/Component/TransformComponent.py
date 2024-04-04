@@ -22,3 +22,6 @@ class TransformComponent:
         self._world_matrix = glm.scale(self._world_matrix, self.scale)
         pass
 
+    def set_position(self, position: glm.vec3):
+        self.position = glm.vec3(position)
+        self.update_world_matrix()

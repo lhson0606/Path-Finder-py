@@ -2251,7 +2251,7 @@ def show_test_window():
             #     imgui.color_edit4("color 2", col2);
             #     imgui.unindent();
             # }
-
+            #
             # {
             #     imgui.bullet_text("Drag and drop to copy/swap items");
             #     imgui.indent();
@@ -2280,7 +2280,7 @@ def show_test_window():
             #         if (n % 3) != 0:
             #             imgui.same_line();
             #         imgui.button(label=names[n], ImVec2(60,60));
-
+            #
             #         // Our buttons are both drag sources and drag targets here!
             #         if imgui.begin_drag_drop_source(ImGuiDragDropFlags_None):
             #         {

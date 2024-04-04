@@ -49,6 +49,12 @@ def key_callback(window, key, scancode, action, mods):
     elif action == glfw.RELEASE:
         app.key_released = str(key)
 
+    if(key == glfw.KEY_F1 and action == glfw.PRESS):
+        app.cur_map_context.editor.undo()
+
+    if(key == glfw.KEY_F2 and action == glfw.PRESS):
+        app.cur_map_context.editor.redo()
+
 
 def cursor_position_callback(window, xpos, ypos):
     app = glfw.get_window_user_pointer(window)
@@ -116,17 +122,18 @@ def process_input(window):
         if app.context == app.Context.SCENE:
             app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.RIGHT, app.io.delta_time)
 
-    if glfw.get_key(window, glfw.KEY_Q) == glfw.PRESS:
+    if glfw.get_key(window, glfw.KEY_E) == glfw.PRESS:
         if app.context == app.Context.SCENE:
             app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.LOCAL_UP, app.io.delta_time)
 
-    if glfw.get_key(window, glfw.KEY_E) == glfw.PRESS:
+    if glfw.get_key(window, glfw.KEY_Q) == glfw.PRESS:
         if app.context == app.Context.SCENE:
             app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.LOCAL_DOWN, app.io.delta_time)
 
     if glfw.get_key(window, glfw.KEY_SPACE) == glfw.PRESS:
         if app.context == app.Context.SCENE:
             app.cur_map_context.camera.process_keyboard(Camera.Camera.Movement.UP, app.io.delta_time)
+
 
     if glfw.get_key(window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
         if app.context == app.Context.SCENE:
@@ -151,7 +158,10 @@ def mouse_button_callback(window, button, action, mods):
     if action == glfw.PRESS:
         app.mouse_btn_pressed = mouse_btn_str(button)
         if button == glfw.MOUSE_BUTTON_LEFT and app.context == app.Context.EDITOR:
-            app.cur_map_context.picking_processor.pick(app.mousePos.x, app.mousePos.y)
+            if imgui.is_any_item_hovered() or imgui.is_any_item_active():
+                return
+            o = app.cur_map_context.picking_processor.pick(app.mousePos.x, app.mousePos.y)
+            app.cur_map_context.editor.handle_pick(o)
 
 
 
@@ -256,7 +266,7 @@ class App:
 
     def on_create(self):
         # create context for default world
-        new_map_context = MapContext.MapContext(None)
+        new_map_context = MapContext.MapContext(None, self)
         new_map_context.camera = Camera.Camera()
         self.map_contexts["default"] = new_map_context
         self.cur_map_context = new_map_context
@@ -413,6 +423,9 @@ class App:
         imgui.set_next_window_size(400, 200)
         imgui.begin("Editor", False, imgui.WINDOW_NO_RESIZE |
                     imgui.WINDOW_NO_MOVE)
+
+        imgui.text("Edit")
+
         imgui.text("Debug")
 
         # ====== Debug camera ======
@@ -473,6 +486,8 @@ class App:
             imgui.open_popup("Creat a new map")
 
         self.draw_modal()
+
+        self.cur_map_context.editor.on_imgui_render()
 
     def draw_modal(self):
         if imgui.begin_popup_modal(
@@ -576,7 +591,7 @@ class App:
         self.opened_map_count += 1
 
         # create new map context
-        new_map_context = MapContext.MapContext(target_map)
+        new_map_context = MapContext.MapContext(target_map, self)
         new_map_context.camera.pos.x = target_map.width / 2
         new_map_context.camera.update_camera_vectors()
         new_map_context.grid_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.GRID_SHADER)

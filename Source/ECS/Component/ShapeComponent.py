@@ -6,16 +6,18 @@ import ctypes
 
 import Source.ECS.Component.CubeComponent as CubeComponent
 import Source.ECS.Component.TransformComponent as TransformComponent
+import Source.ECS.Component.NameTagComponent as NameTagComponent
 
 import Source.Algorithm.GreedyNoWall as GreedyNoWall
 
 import Source.Util.dy as dy
 
 
-def add_cube(shape_entity, position: glm.vec3):
+def add_cube(shape_entity, position: glm.vec3, pivot_index: int = -1):
     new_cube_entity = esper.create_entity()
-    esper.add_component(new_cube_entity, CubeComponent.CubeComponent(shape_entity))
+    esper.add_component(new_cube_entity, CubeComponent.CubeComponent(shape_entity, pivot_index))
     esper.add_component(new_cube_entity, TransformComponent.TransformComponent(position))
+    esper.add_component(new_cube_entity, NameTagComponent.NameTagComponent("cube"))
     return new_cube_entity
     pass
 
@@ -24,20 +26,32 @@ def build_cubes(shape_ent, pivots, cube_position):
     cubes = []
 
     if len(pivots) == 1:
-        cubes.append(add_cube(shape_ent, pivots[0]))
+        cubes.append(add_cube(shape_ent, pivots[0], 0))
     else:
         for i in range(0, len(pivots) - 1):
             nodes = GreedyNoWall.a_star_search(pivots[i], pivots[i + 1])
             for node in nodes:
                 if node not in cube_position:
                     cube_position.append(node)
-                    cubes.append(add_cube(shape_ent, node))
+                    if node == pivots[i]:
+                        cubes.append(add_cube(shape_ent, node, i))
+                    else:
+                        if node == pivots[i + 1]:
+                            cubes.append(add_cube(shape_ent, node, i + 1))
+                        else:
+                            cubes.append(add_cube(shape_ent, node))
 
         nodes = GreedyNoWall.a_star_search(pivots[-1], pivots[0])
         for node in nodes:
             if node not in cube_position:
                 cube_position.append(node)
-                cubes.append(add_cube(shape_ent, node))
+                if node == pivots[0]:
+                    cubes.append(add_cube(shape_ent, node, 0))
+                else:
+                    if node == pivots[-1]:
+                        cubes.append(add_cube(shape_ent, node, len(pivots) - 1))
+                    else:
+                        cubes.append(add_cube(shape_ent, node))
 
     return cubes
     pass
@@ -45,11 +59,11 @@ def build_cubes(shape_ent, pivots, cube_position):
 
 class ShapeComponent:
     def __init__(self, ent_id, pivots: list[glm.ivec3]):
-        self.pivots = []
+        self.pivots = pivots
         self.ent_id = ent_id
         # store unique cube position
         self.cube_position = []
-        self.cubes = build_cubes(self.ent_id, pivots, self.cube_position)
+        self.cubes = []
         self.vao = -1
         self.vbo_pos = -1
         self.vbo_tex = -1
@@ -59,7 +73,7 @@ class ShapeComponent:
         self.vbo_model_col_2 = -1
         self.vbo_model_col_3 = -1
         self.ebo = -1
-        self.vertex_count = len(self.cubes) * 36
+        self.vertex_count = 0
 
     def gl_init(self):
         self.vao = gl.glGenVertexArrays(1)
@@ -71,6 +85,14 @@ class ShapeComponent:
         self.vbo_model_col_2 = gl.glGenBuffers(1)
         self.vbo_model_col_3 = gl.glGenBuffers(1)
         self.ebo = gl.glGenBuffers(1)
+
+        self.update_data()
+
+    def update_data(self):
+        new_cubes = build_cubes(self.ent_id, self.pivots, self.cube_position)
+        for cube in new_cubes:
+            self.cubes.append(cube)
+        self.vertex_count = len(self.cubes) * 36
 
         gl.glBindVertexArray(self.vao)
 
@@ -113,6 +135,7 @@ class ShapeComponent:
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, self.get_batch_indices_data(), gl.GL_STATIC_DRAW)
 
         gl.glBindVertexArray(0)
+        pass
 
     def get_batch_position_data(self):
         position = np.array([], dtype=np.float32)
@@ -153,7 +176,7 @@ class ShapeComponent:
         count = 0
 
         for cube in self.cubes:
-            indices = np.append(indices, CubeComponent.INDICES + 24*count)
+            indices = np.append(indices, CubeComponent.INDICES + 24 * count)
             count += 1
 
         return indices
@@ -198,10 +221,42 @@ class ShapeComponent:
         count = 0
 
         for cube in self.cubes:
-            indices = np.append(indices, CubeComponent.INDICES + 24*count)
+            indices = np.append(indices, CubeComponent.INDICES + 24 * count)
             count += 1
 
         return indices
+
+    def move_pivot(self, pivot_index, position):
+        if pivot_index == -1:
+            return
+
+        if self.pivots[pivot_index] == position:
+            return
+
+        self.pivots[pivot_index] = glm.ivec3(position)
+
+        # destroy all none-pivot cubes
+        # copy new list of cubes
+        pivots_cube = []
+        for cube in self.cubes:
+            cube_comp = esper.component_for_entity(cube, CubeComponent.CubeComponent)
+            if cube_comp.is_pivot():
+                pivots_cube.append(cube)
+
+        for cube in self.cubes:
+            if cube not in pivots_cube:
+                esper.delete_entity(cube, True)
+
+        # reconstruct cubes
+        self.cubes = pivots_cube
+        self.cube_position.clear()
+
+        for p in self.pivots:
+            self.cube_position.append(p)
+
+        self.update_data()
+
+        pass
 
     def clean_up(self):
         gl.glDeleteVertexArrays(1, self.vao)

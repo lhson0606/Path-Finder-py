@@ -5,6 +5,7 @@ import glm
 
 import Source.ECS.Component.ShapeComponent as ShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
+import Source.ECS.Component.NameTagComponent as NameTagComponent
 import Source.Manager.ShaderManager as ShaderManager
 import Source.Render.Shader as Shader
 
@@ -79,6 +80,7 @@ class Map:
                 render_comp = RenderComponent.RenderComponent(shape_shader, shader_type)
                 esper.add_component(new_shape_ent, shape_comp)
                 esper.add_component(new_shape_ent, render_comp)
+                esper.add_component(new_shape_ent, NameTagComponent.NameTagComponent("shape"))
 
         except Exception as e:
             raise ValueError("Invalid map file: " + str(self.full_path) + " " + str(e))

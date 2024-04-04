@@ -67,7 +67,10 @@ INDICES = np.array([
 
 
 class CubeComponent:
-    def __init__(self, shape_entity, is_pillar: bool = False):
+    def __init__(self, shape_entity, pivot_index: int = -1):
         self.is_selected: bool = False
         self.shape_entity = shape_entity
-        self.is_pillar = is_pillar
+        self.pivot_index = pivot_index
+
+    def is_pivot(self):
+        return self.pivot_index != -1

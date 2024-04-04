@@ -3,14 +3,16 @@ import glm
 import Source.Render.Camera as Camera
 import Source.Render.Shader as Shader
 import Source.Map.Map as Map
+import Source.App.Editor as Editor
 
 
 class MapContext:
-    def __init__(self, inp_map):
+    def __init__(self, inp_map, app):
         self.camera = Camera.Camera()
         self.render_processor = None
         self.pick_processor = None
         self.map = inp_map
+        self.editor = Editor.Editor(app)
 
     def update_projection(self, projection):
         if self.render_processor is not None:
