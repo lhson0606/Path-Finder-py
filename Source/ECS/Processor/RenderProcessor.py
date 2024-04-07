@@ -7,6 +7,7 @@ import Source.ECS.Component.GridComponent as GridComponent
 import Source.ECS.Component.ShapeComponent as ShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.TempShapeComponent as TempShapeComponent
+import Source.ECS.Component.SkyBoxComponent as SkyBoxComponent
 import Source.Render.Shader as Shader
 from Source.Manager.ShaderManager import ShaderType as ShaderType
 
@@ -36,6 +37,16 @@ class RenderProcessor(esper.Processor):
                 case ShaderType.TEMP_SHAPE_SHADER:
                     self.render_as_temp_shape(ent, render_data.shader)
 
+
+                
+        for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
+            shader_type = render_data.shader_type
+
+            match shader_type:
+                case ShaderType.SKY_BOX_SHADER:
+                    self.render_as_skybox(ent, render_data.shader)
+        pass
+
         # render all entities with render component
         for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
             shader_type = render_data.shader_type
@@ -43,7 +54,6 @@ class RenderProcessor(esper.Processor):
             match shader_type:
                 case ShaderType.GRID_SHADER:
                     self.render_as_grid(ent, render_data.shader)
-        pass
 
     def render_as_grid(self, ent, shader: Shader):
         gl.glDisable(gl.GL_CULL_FACE)
@@ -57,7 +67,13 @@ class RenderProcessor(esper.Processor):
         pass
 
     def render_as_shape(self, ent, shader):
+        sky_box_ent, skybox_comp = esper.get_component(SkyBoxComponent.SkyBoxComponent)[0]
+        tex = skybox_comp.texture
         shader.use()
+
+        gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, tex)
+
+        shader.set_vec3("cameraPos", self.app.cur_map_context.camera.pos)
         shape_data = esper.component_for_entity(ent, ShapeComponent.ShapeComponent)
         gl.glBindVertexArray(shape_data.vao)
         # gl.glDrawArrays(gl.GL_TRIANGLES, 0, shape_data.vertex_count)
@@ -103,5 +119,29 @@ class RenderProcessor(esper.Processor):
                 shader.set_float("gridWidth", width)
                 shader.set_float("gridHeight", height)
                 shader.stop()
+        pass
+
+    def render_as_skybox(self, ent, shader):
+        # gl.glDisable(gl.GL_CULL_FACE)
+        # gl.glDepthMask(gl.GL_FALSE)
+        # gl.glDisable(gl.GL_BLEND)
+        gl.glDepthFunc(gl.GL_LEQUAL)
+
+        shader.use()
+        shader.set_mat4("projection", self.app.projection)
+        sky_box_view = glm.mat4(glm.mat3(self.app.cur_map_context.camera.view))
+        shader.set_mat4("view", sky_box_view)
+        skybox_data = esper.component_for_entity(ent, SkyBoxComponent.SkyBoxComponent)
+        gl.glBindVertexArray(skybox_data.vao)
+        gl.glActiveTexture(gl.GL_TEXTURE0)
+        gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, skybox_data.texture)
+        gl.glDrawArrays(gl.GL_TRIANGLES, 0, skybox_data.vertex_count)
+        gl.glBindVertexArray(0)
+        shader.stop()
+
+        # gl.glDepthMask(gl.GL_TRUE)
+        # gl.glEnable(gl.GL_CULL_FACE)
+        # gl.glEnable(gl.GL_BLEND)
+        gl.glDepthFunc(gl.GL_LESS)
         pass
 

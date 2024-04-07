@@ -13,6 +13,8 @@ import Source.ECS as ECS
 import Source.ECS.Component.MapComponent as MapComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.GridComponent as GridComponent
+import Source.ECS.Component.SkyBoxComponent as SkyBoxComponent
+
 import Source.Manager.ShaderManager as ShaderManager
 import Source.Map.Map
 import Source.Render.Camera as Camera
@@ -635,6 +637,20 @@ class App:
             new_map_context.grid_shader,
             ShaderManager.ShaderType.GRID_SHADER
         ))
+        # ==================================
+
+        # ===== sky box =====
+        new_sky_box_entity = esper.create_entity()
+        esper.add_component(new_sky_box_entity, SkyBoxComponent.SkyBoxComponent())
+        skybox_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.SKY_BOX_SHADER)
+        esper.add_component(new_sky_box_entity, RenderComponent.RenderComponent(
+            skybox_shader,
+            ShaderManager.ShaderType.SKY_BOX_SHADER)
+        )
+        m = glm.rotate(glm.mat4(1), glm.radians(90), glm.vec3(1, 0, 0))
+        skybox_shader.use()
+        skybox_shader.set_mat4("model", m)
+        skybox_shader.stop()
         # ==================================
 
         # create a new world with the name of the target map

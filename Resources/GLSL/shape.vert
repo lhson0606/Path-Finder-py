@@ -8,6 +8,7 @@ layout (location = 4) in vec4 col1;
 layout (location = 5) in vec4 col2;
 layout (location = 6) in vec4 col3;
 
+out vec3 position;
 out vec3 normal;
 out vec2 texCoords;
 
@@ -18,6 +19,7 @@ void main()
 {
     mat4 instanceMatrix = mat4(col0, col1, col2, col3);
     gl_Position = projection * view * instanceMatrix * vec4(aPos, 1.0);
+    position = vec3(instanceMatrix * vec4(aPos, 1.0));
     normal = aNormal;
     texCoords = aTexCoords;
 }

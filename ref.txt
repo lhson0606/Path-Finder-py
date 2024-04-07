@@ -11,6 +11,7 @@ lib:
 	esper
 	colorLog
 	tk (file dialog)
+	pillow (image texture loader)
 	
 	
 each map has its own shader_manager?
