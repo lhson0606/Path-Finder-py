@@ -14,7 +14,6 @@ class MoveCubeCmd(Command.Command):
 
 
     def execute(self):
-        dy.log.info("MoveCubeCmd execute")
         pos_comp = esper.component_for_entity(self.entity, TransformComponent.TransformComponent)
         cube_comp = esper.component_for_entity(self.entity, CubeComponent.CubeComponent)
         self.old_position = pos_comp.position
@@ -25,7 +24,6 @@ class MoveCubeCmd(Command.Command):
         pass
 
     def undo(self):
-        dy.log.info("MoveCubeCmd undo")
         pos_comp = esper.component_for_entity(self.entity, TransformComponent.TransformComponent)
         pos_comp.set_position(self.old_position)
         cube_comp = esper.component_for_entity(self.entity, CubeComponent.CubeComponent)

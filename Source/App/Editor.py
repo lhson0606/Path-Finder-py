@@ -12,6 +12,7 @@ import Source.ECS.Component.TempShapeComponent as TempShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.App.MoveCubeCmd as MoveCubeCmd
 import Source.Manager.ShaderManager as ShaderManager
+import Source.App.AddPivotCmd as AddPivotCmd
 import imgui
 
 import esper
@@ -41,6 +42,7 @@ class Editor:
         self.pause_time = 0
         self.cur_shape = -1
         self.cur_temp_shape = -1
+        self.new_pivot_pos = glm.ivec3(0)
 
     def execute(self, command: Command):
         self.history.append(command)
@@ -48,12 +50,14 @@ class Editor:
         self.future.clear()
 
     def undo(self):
+        self.quit_edit()
         if len(self.history) > 0:
             command = self.history.pop()
             command.undo()
             self.future.append(command)
 
     def redo(self):
+        self.quit_edit()
         if len(self.future) > 0:
             command = self.future.pop()
             command.execute()
@@ -114,10 +118,14 @@ class Editor:
         esper.add_component(new_temp_shape_ent, temp_shape_comp)
         esper.add_component(new_temp_shape_ent, render_comp)
         self.cur_temp_shape = new_temp_shape_ent
+        self.new_pivot_pos = new_pivot_pos
         pass
 
     def handle_pick(self, picked_obj):
         if self.mode == Mode.ADDING_PIVOT:
+            self.execute(AddPivotCmd.AddPivotCommand(self.cur_shape, self.new_pivot_pos))
+            self.mode = Mode.NONE
+            self.quit_edit()
             return
 
         if picked_obj.entity == -1:
@@ -192,6 +200,21 @@ class Editor:
 
         imgui.end()
 
+        pass
+
+    def quit_edit(self):
+        if self.cur_temp_shape != -1:
+            t_shape_comp = esper.component_for_entity(self.cur_temp_shape, TempShapeComponent.TempShapeComponent)
+            t_shape_comp.clean_up()
+            esper.delete_entity(self.cur_temp_shape, True)
+            self.cur_temp_shape = -1
+
+        self.mode = Mode.NONE
+        self.cur_entity = -1
+        self.cur_obj = None
+        self.cur_shape = -1
+        self.cur_temp_shape = -1
+        self.new_pivot_pos = glm.ivec3(0)
         pass
 
     def render_shape_editor(self):

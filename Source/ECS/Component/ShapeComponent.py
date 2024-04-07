@@ -9,7 +9,6 @@ import Source.ECS.Component.TransformComponent as TransformComponent
 import Source.ECS.Component.NameTagComponent as NameTagComponent
 
 import Source.Algorithm.GreedyNoWall as GreedyNoWall
-import Source.Algorithm.AStarNoWall as AstarNoWall
 
 import Source.Util.dy as dy
 
@@ -21,15 +20,14 @@ def get_new_cubes(shape_ent, new_pivot_pos: glm.ivec3):
         return new_pivot_pos
     else:
         result = []
-        temp = AstarNoWall.a_star_search(shape_comp.pivots[0], new_pivot_pos)
+        temp = GreedyNoWall.a_star_search(shape_comp.pivots[-1], new_pivot_pos)
         result.extend(temp)
-        temp = AstarNoWall.a_star_search(new_pivot_pos, shape_comp.pivots[-1])
+        temp = GreedyNoWall.a_star_search(new_pivot_pos, shape_comp.pivots[0])
         result.extend(temp)
         temp = set(result)
         result = list(temp)
         result.remove(shape_comp.pivots[0])
         result.remove(shape_comp.pivots[-1])
-
         return result
     pass
 
@@ -96,6 +94,30 @@ class ShapeComponent:
         self.vertex_count = 0
 
     def gl_init(self):
+        self.vao = int(gl.glGenVertexArrays(1))
+        self.vbo_pos = int(gl.glGenBuffers(1))
+        self.vbo_tex = int(gl.glGenBuffers(1))
+        self.vbo_normal = int(gl.glGenBuffers(1))
+        self.vbo_model_col_0 = int(gl.glGenBuffers(1))
+        self.vbo_model_col_1 = int(gl.glGenBuffers(1))
+        self.vbo_model_col_2 = int(gl.glGenBuffers(1))
+        self.vbo_model_col_3 = int(gl.glGenBuffers(1))
+        self.ebo = int(gl.glGenBuffers(1))
+
+        self.generate_cubes()
+        self.update_data()
+
+    def recreate_gl(self):
+        self.vao = int(gl.glGenVertexArrays(1))
+        self.vbo_pos = int(gl.glGenBuffers(1))
+        self.vbo_tex = int(gl.glGenBuffers(1))
+        self.vbo_normal = int(gl.glGenBuffers(1))
+        self.vbo_model_col_0 = int(gl.glGenBuffers(1))
+        self.vbo_model_col_1 = int(gl.glGenBuffers(1))
+        self.vbo_model_col_2 = int(gl.glGenBuffers(1))
+        self.vbo_model_col_3 = int(gl.glGenBuffers(1))
+        self.ebo = int(gl.glGenBuffers(1))
+
         self.vao = gl.glGenVertexArrays(1)
         self.vbo_pos = gl.glGenBuffers(1)
         self.vbo_tex = gl.glGenBuffers(1)
@@ -105,14 +127,17 @@ class ShapeComponent:
         self.vbo_model_col_2 = gl.glGenBuffers(1)
         self.vbo_model_col_3 = gl.glGenBuffers(1)
         self.ebo = gl.glGenBuffers(1)
+    pass
 
-        self.update_data()
 
-    def update_data(self):
+
+    def generate_cubes(self):
         new_cubes = build_cubes(self.ent_id, self.pivots, self.cube_position)
         for cube in new_cubes:
             self.cubes.append(cube)
         self.vertex_count = len(self.cubes) * 36
+
+    def update_data(self):
 
         gl.glBindVertexArray(self.vao)
 
@@ -255,12 +280,13 @@ class ShapeComponent:
 
         self.pivots[pivot_index] = glm.ivec3(position)
 
-        # reconstruct cubes
-        self.reconstruct_cubes_from_pivots()
+        self.clear_all_none_pivot_cubes()
+        self.generate_cubes()
+        self.update_data()
 
         pass
 
-    def reconstruct_cubes_from_pivots(self):
+    def clear_all_none_pivot_cubes(self):
         # destroy all none-pivot cubes
         # copy new list of cubes
         pivots_cube = []
@@ -277,9 +303,7 @@ class ShapeComponent:
 
         for p in self.pivots:
             self.cube_position.append(p)
-
-        self.update_data()
-        pass
+    pass
 
     def add_pivot(self, position):
         new_pos = glm.ivec3(position)
@@ -291,11 +315,24 @@ class ShapeComponent:
         esper.add_component(pivot_entity, TransformComponent.TransformComponent(glm.vec3(position)))
         esper.add_component(pivot_entity, NameTagComponent.NameTagComponent("cube"))
 
-        self.reconstruct_cubes_from_pivots()
+        self.cubes.append(pivot_entity)
 
+        self.clear_all_none_pivot_cubes()
+        self.generate_cubes()
+        self.recreate_gl()
+        self.update_data()
+
+        return pivot_entity
         pass
 
-    def remove_pivot(self, pivot_index):
+    def remove_pivot(self, pivot_index, ent):
+        self.pivots.remove(self.pivots[pivot_index])
+        self.cubes.remove(ent)
+        esper.delete_entity(ent, True)
+        self.clear_all_none_pivot_cubes()
+        self.generate_cubes()
+        self.recreate_gl()
+        self.update_data()
         pass
 
     def clean_up(self):

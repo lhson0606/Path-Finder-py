@@ -74,7 +74,7 @@ def cursor_position_callback(window, xpos, ypos):
 
     if app.cur_map_context.editor.mode == Source.App.Editor.Mode.ADDING_PIVOT and app.context == app.Context.EDITOR:
         app.cur_map_context.editor.pause_time += imgui.get_io().delta_time
-        if app.cur_map_context.editor.pause_time > 0.016:
+        if app.cur_map_context.editor.pause_time > 0.016666:
             app.cur_map_context.editor.pause_time = 0
         else:
             return
@@ -112,7 +112,8 @@ def process_input(window):
     app = glfw.get_window_user_pointer(window)
 
     if glfw.get_key(window, glfw.KEY_ESCAPE) == glfw.PRESS:
-        glfw.set_window_should_close(window, True)
+        if app.context == app.Context.EDITOR:
+            app.cur_map_context.editor.quit_edit()
 
     if glfw.get_key(window, glfw.KEY_W) == glfw.PRESS:
         if app.context == app.Context.SCENE:
