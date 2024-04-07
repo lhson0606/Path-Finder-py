@@ -647,10 +647,6 @@ class App:
             skybox_shader,
             ShaderManager.ShaderType.SKY_BOX_SHADER)
         )
-        m = glm.rotate(glm.mat4(1), glm.radians(90), glm.vec3(1, 0, 0))
-        skybox_shader.use()
-        skybox_shader.set_mat4("model", m)
-        skybox_shader.stop()
         # ==================================
 
         # create a new world with the name of the target map
