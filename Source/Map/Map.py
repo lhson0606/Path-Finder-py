@@ -6,6 +6,7 @@ import glm
 import Source.ECS.Component.ShapeComponent as ShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.NameTagComponent as NameTagComponent
+import Source.ECS.Component.OutliningComponent as OutliningComponent
 import Source.Manager.ShaderManager as ShaderManager
 import Source.Render.Shader as Shader
 import numpy as np
@@ -48,7 +49,7 @@ class Map:
 
         pass
 
-    def load(self, shader_type: ShaderManager.ShaderType, shape_shader: Shader):
+    def load(self, shader_type: ShaderManager.ShaderType, shape_shader: Shader, outlining_type: ShaderManager.ShaderType, outlining_shader: Shader):
         with open(self.full_path) as file:
             lines = file.readlines()
 
@@ -79,11 +80,14 @@ class Map:
 
                 new_shape_ent = esper.create_entity()
                 shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots)
+                outline_comp = OutliningComponent.OutliningComponent(outlining_type, outlining_shader)
                 shape_comp.gl_init()
                 render_comp = RenderComponent.RenderComponent(shape_shader, shader_type)
                 esper.add_component(new_shape_ent, shape_comp)
                 esper.add_component(new_shape_ent, render_comp)
                 esper.add_component(new_shape_ent, NameTagComponent.NameTagComponent("shape"))
+                esper.add_component(new_shape_ent, outline_comp)
+
 
                 for pos in shape_comp.cube_position:
                     self.look_up[pos.x][pos.y][pos.z] = 1

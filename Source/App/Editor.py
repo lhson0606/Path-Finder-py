@@ -10,6 +10,7 @@ import Source.ECS.Component.ShapeComponent as ShapeComponent
 import Source.ECS.Component.TransformComponent as TransformComponent
 import Source.ECS.Component.TempShapeComponent as TempShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
+import Source.ECS.Component.OutliningComponent as OutliningComponent
 import Source.App.MoveCubeCmd as MoveCubeCmd
 import Source.Manager.ShaderManager as ShaderManager
 import Source.App.AddPivotCmd as AddPivotCmd
@@ -126,11 +127,11 @@ class Editor:
             self.execute(AddPivotCmd.AddPivotCommand(self.cur_shape, self.new_pivot_pos))
             self.mode = Mode.NONE
             self.quit_edit()
+
             return
 
         if picked_obj.entity == -1:
-            self.cur_entity = -1
-            self.mode = Mode.NONE
+            self.quit_edit()
             return
 
         cube_comp = esper.component_for_entity(picked_obj.entity, CubeComponent.CubeComponent)
@@ -140,13 +141,23 @@ class Editor:
             self.should_update_position = True
 
         if not cube_comp.is_pivot():
+            self.quit_edit()
             self.cur_entity = picked_obj.entity
             self.mode = Mode.SELECT_SHAPE
+            # enable shape outlining
+            outline_comp = esper.component_for_entity(cube_comp.shape_entity, OutliningComponent.OutliningComponent)
+            outline_comp.set_draw_outline(True)
+            self.cur_shape = cube_comp.shape_entity
         else:
             if self.cur_entity == picked_obj.entity:
+                self.quit_edit()
                 self.cur_entity = picked_obj.entity
                 self.mode = Mode.SELECT_SHAPE
                 self.should_update_position = True
+                # enable shape outlining
+                outline_comp = esper.component_for_entity(cube_comp.shape_entity, OutliningComponent.OutliningComponent)
+                outline_comp.set_draw_outline(True)
+                self.cur_shape = cube_comp.shape_entity
             else:
                 self.cur_entity = picked_obj.entity
                 self.mode = Mode.SELECT_CUBE
@@ -208,6 +219,10 @@ class Editor:
             t_shape_comp.clean_up()
             esper.delete_entity(self.cur_temp_shape, True)
             self.cur_temp_shape = -1
+
+        if self.cur_shape != -1:
+            outline_comp = esper.component_for_entity(self.cur_shape, OutliningComponent.OutliningComponent)
+            outline_comp.set_draw_outline(False)
 
         self.mode = Mode.NONE
         self.cur_entity = -1

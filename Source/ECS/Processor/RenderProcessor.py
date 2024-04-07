@@ -8,6 +8,7 @@ import Source.ECS.Component.ShapeComponent as ShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.TempShapeComponent as TempShapeComponent
 import Source.ECS.Component.SkyBoxComponent as SkyBoxComponent
+import Source.ECS.Component.OutliningComponent as OutliningComponent
 import Source.Render.Shader as Shader
 from Source.Manager.ShaderManager import ShaderType as ShaderType
 
@@ -20,6 +21,15 @@ class RenderProcessor(esper.Processor):
         self.app = app
 
     def process(self, dt):
+        gl.glStencilMask(0x00)
+
+        for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
+            shader_type = render_data.shader_type
+
+            match shader_type:
+                case ShaderType.SKY_BOX_SHADER:
+                    self.render_as_skybox(ent, render_data.shader)
+        pass
 
         for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
             shader_type = render_data.shader_type
@@ -38,14 +48,6 @@ class RenderProcessor(esper.Processor):
                     self.render_as_temp_shape(ent, render_data.shader)
 
 
-                
-        for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
-            shader_type = render_data.shader_type
-
-            match shader_type:
-                case ShaderType.SKY_BOX_SHADER:
-                    self.render_as_skybox(ent, render_data.shader)
-        pass
 
         # render all entities with render component
         for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
@@ -67,8 +69,17 @@ class RenderProcessor(esper.Processor):
         pass
 
     def render_as_shape(self, ent, shader):
+        # check for outlining
+        outline_comp = esper.component_for_entity(ent, OutliningComponent.OutliningComponent)
+
+        if outline_comp.will_draw_outline():
+            gl.glStencilFunc(gl.GL_ALWAYS, 1, 0xFF)
+            gl.glStencilMask(0xFF)
+
+        # skybox
         sky_box_ent, skybox_comp = esper.get_component(SkyBoxComponent.SkyBoxComponent)[0]
         tex = skybox_comp.texture
+
         shader.use()
 
         gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, tex)
@@ -80,6 +91,30 @@ class RenderProcessor(esper.Processor):
         gl.glDrawElements(gl.GL_TRIANGLES, shape_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
         gl.glBindVertexArray(0)
         shader.stop()
+
+        # draw outline if necessary
+        if not outline_comp.will_draw_outline():
+            return
+
+        outline_shader = outline_comp.shader
+        gl.glStencilFunc(gl.GL_NOTEQUAL, 1, 0xFF)
+        gl.glStencilMask(0x00)
+        gl.glDisable(gl.GL_DEPTH_TEST)
+
+        outline_shader.use()
+
+        outline_shader.set_mat4("projection", self.app.projection)
+        outline_shader.set_mat4("view", self.app.cur_map_context.camera.view)
+
+        gl.glBindVertexArray(shape_data.vao)
+        gl.glDrawElements(gl.GL_TRIANGLES, shape_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+        gl.glBindVertexArray(0)
+        outline_shader.stop()
+
+        # reset state
+        gl.glStencilMask(0xFF)
+        gl.glStencilFunc(gl.GL_ALWAYS, 0, 0xFF)
+        gl.glEnable(gl.GL_DEPTH_TEST)
         pass
 
     def render_as_temp_shape(self, ent, shader):

@@ -14,6 +14,8 @@ TEMP_SHAPE_SHADER_VERT_PATH = "Resources/GLSL/temp_shape.vert"
 TEMP_SHAPE_SHADER_FRAG_PATH = "Resources/GLSL/temp_shape.frag"
 SKY_BOX_SHADER_VERT_PATH = "Resources/GLSL/sky_box.vert"
 SKY_BOX_SHADER_FRAG_PATH = "Resources/GLSL/sky_box.frag"
+SHAPE_OUTLINING_SHADER_VERT_PATH = "Resources/GLSL/shape_outlining.vert"
+SHAPE_OUTLINING_SHADER_FRAG_PATH = "Resources/GLSL/shape_outlining.frag"
 
 
 class ShaderType(Enum):
@@ -24,6 +26,7 @@ class ShaderType(Enum):
     PICKING_DATA_SHADER = 4
     TEMP_SHAPE_SHADER = 5
     SKY_BOX_SHADER = 6
+    SHAPE_OUTLINING_SHADER = 7
 
 class ShaderManager:
 
@@ -47,3 +50,4 @@ class ShaderManager:
         self.load_shaders(ShaderType.PICKING_DATA_SHADER, PICKING_DATA_SHADER_VERT_PATH, PICKING_DATA_SHADER_FRAG_PATH)
         self.load_shaders(ShaderType.TEMP_SHAPE_SHADER, TEMP_SHAPE_SHADER_VERT_PATH, TEMP_SHAPE_SHADER_FRAG_PATH)
         self.load_shaders(ShaderType.SKY_BOX_SHADER, SKY_BOX_SHADER_VERT_PATH, SKY_BOX_SHADER_FRAG_PATH)
+        self.load_shaders(ShaderType.SHAPE_OUTLINING_SHADER, SHAPE_OUTLINING_SHADER_VERT_PATH, SHAPE_OUTLINING_SHADER_FRAG_PATH)

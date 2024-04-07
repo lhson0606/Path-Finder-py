@@ -318,8 +318,8 @@ class App:
         gl.glClearColor(self.clear_color.x, self.clear_color.y, self.clear_color.z, self.clear_color.w)
 
         while not glfw.window_should_close(self.window):
-            gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-            gl.glClear(gl.GL_DEPTH_BUFFER_BIT)
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+
             glfw.poll_events()
             self.impl.process_inputs()
 
@@ -362,6 +362,10 @@ class App:
         gl.glEnable(gl.GL_DEPTH_TEST)
         # gl.glBlendFuncSeparate(-1, -1, -1, -1)
         gl.glEnable(gl.GL_CULL_FACE)
+        gl.glDepthFunc(gl.GL_LESS)
+        gl.glEnable(gl.GL_STENCIL_TEST)
+        gl.glStencilFunc(gl.GL_NOTEQUAL, 1, 0xFF)
+        gl.glStencilOp(gl.GL_KEEP, gl.GL_KEEP, gl.GL_REPLACE)
 
     def on_close(self):
         self.impl.shutdown()
@@ -625,9 +629,10 @@ class App:
         # load map data
         if not target_map.is_draft:
             dy.log.info("Loading \'" + target_map.name + "\' data")
-            target_map.load(ShaderManager.ShaderType.SHAPE_SHADER, self.shader_manager.get_shader(
-                ShaderManager.ShaderType.SHAPE_SHADER
-            ))
+            target_map.load(
+                ShaderManager.ShaderType.SHAPE_SHADER, self.shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_SHADER),
+                ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER, self.shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER)
+            )
 
         # ===== create a grid entity =====
         new_grid_entity = esper.create_entity()
