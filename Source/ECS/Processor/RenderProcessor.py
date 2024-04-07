@@ -6,6 +6,7 @@ import Source.App.App as App
 import Source.ECS.Component.GridComponent as GridComponent
 import Source.ECS.Component.ShapeComponent as ShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
+import Source.ECS.Component.TempShapeComponent as TempShapeComponent
 import Source.Render.Shader as Shader
 from Source.Manager.ShaderManager import ShaderType as ShaderType
 
@@ -18,6 +19,23 @@ class RenderProcessor(esper.Processor):
         self.app = app
 
     def process(self, dt):
+
+        for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
+            shader_type = render_data.shader_type
+
+            match shader_type:
+                case ShaderType.SHAPE_SHADER:
+                    self.render_as_shape(ent, render_data.shader)
+        pass
+
+        # render all entities with render component
+        for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
+            shader_type = render_data.shader_type
+
+            match shader_type:
+                case ShaderType.TEMP_SHAPE_SHADER:
+                    self.render_as_temp_shape(ent, render_data.shader)
+
         # render all entities with render component
         for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
             shader_type = render_data.shader_type
@@ -25,17 +43,17 @@ class RenderProcessor(esper.Processor):
             match shader_type:
                 case ShaderType.GRID_SHADER:
                     self.render_as_grid(ent, render_data.shader)
-                case ShaderType.SHAPE_SHADER:
-                    self.render_as_shape(ent, render_data.shader)
         pass
 
     def render_as_grid(self, ent, shader: Shader):
+        gl.glDisable(gl.GL_CULL_FACE)
         shader.use()
         grid_data = esper.component_for_entity(ent, GridComponent.GridComponent)
         gl.glBindVertexArray(grid_data.vao)
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
         gl.glBindVertexArray(0)
         shader.stop()
+        gl.glEnable(gl.GL_CULL_FACE)
         pass
 
     def render_as_shape(self, ent, shader):
@@ -44,6 +62,17 @@ class RenderProcessor(esper.Processor):
         gl.glBindVertexArray(shape_data.vao)
         # gl.glDrawArrays(gl.GL_TRIANGLES, 0, shape_data.vertex_count)
         gl.glDrawElements(gl.GL_TRIANGLES, shape_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+        gl.glBindVertexArray(0)
+        shader.stop()
+        pass
+
+    def render_as_temp_shape(self, ent, shader):
+        temp_shape_data = esper.component_for_entity(ent, TempShapeComponent.TempShapeComponent)
+        shader.use()
+        gl.glBindVertexArray(temp_shape_data.vao)
+        shader.set_mat4("projection", self.app.projection)
+        shader.set_mat4("view", self.app.cur_map_context.camera.view)
+        gl.glDrawElements(gl.GL_TRIANGLES, temp_shape_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
         gl.glBindVertexArray(0)
         shader.stop()
         pass

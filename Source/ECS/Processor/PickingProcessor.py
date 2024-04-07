@@ -36,6 +36,8 @@ class PickingProcessor(esper.Processor):
 
         gl.glClearColor(0.0, 0.0, 0.0, -1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        # disable blend
+        gl.glDisable(gl.GL_BLEND)
 
         for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
             shader_type = render_data.shader_type
@@ -55,6 +57,7 @@ class PickingProcessor(esper.Processor):
         self.picked_entity = data.entity
 
         gl.glClearColor(self.app.clear_color.x, self.app.clear_color.y, self.app.clear_color.z, self.app.clear_color.w)
+        gl.glEnable(gl.GL_BLEND)
 
         return data
 

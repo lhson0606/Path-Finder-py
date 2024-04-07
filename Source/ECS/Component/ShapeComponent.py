@@ -9,9 +9,29 @@ import Source.ECS.Component.TransformComponent as TransformComponent
 import Source.ECS.Component.NameTagComponent as NameTagComponent
 
 import Source.Algorithm.GreedyNoWall as GreedyNoWall
+import Source.Algorithm.AStarNoWall as AstarNoWall
 
 import Source.Util.dy as dy
 
+
+def get_new_cubes(shape_ent, new_pivot_pos: glm.ivec3):
+    shape_comp = esper.component_for_entity(shape_ent, ShapeComponent)
+
+    if len(shape_comp.pivots) == 1:
+        return new_pivot_pos
+    else:
+        result = []
+        temp = AstarNoWall.a_star_search(shape_comp.pivots[0], new_pivot_pos)
+        result.extend(temp)
+        temp = AstarNoWall.a_star_search(new_pivot_pos, shape_comp.pivots[-1])
+        result.extend(temp)
+        temp = set(result)
+        result = list(temp)
+        result.remove(shape_comp.pivots[0])
+        result.remove(shape_comp.pivots[-1])
+
+        return result
+    pass
 
 def add_cube(shape_entity, position: glm.vec3, pivot_index: int = -1):
     new_cube_entity = esper.create_entity()
@@ -235,6 +255,12 @@ class ShapeComponent:
 
         self.pivots[pivot_index] = glm.ivec3(position)
 
+        # reconstruct cubes
+        self.reconstruct_cubes_from_pivots()
+
+        pass
+
+    def reconstruct_cubes_from_pivots(self):
         # destroy all none-pivot cubes
         # copy new list of cubes
         pivots_cube = []
@@ -246,8 +272,6 @@ class ShapeComponent:
         for cube in self.cubes:
             if cube not in pivots_cube:
                 esper.delete_entity(cube, True)
-
-        # reconstruct cubes
         self.cubes = pivots_cube
         self.cube_position.clear()
 
@@ -255,7 +279,23 @@ class ShapeComponent:
             self.cube_position.append(p)
 
         self.update_data()
+        pass
 
+    def add_pivot(self, position):
+        new_pos = glm.ivec3(position)
+        self.pivots.append(new_pos)
+
+        # create new entity for pivot
+        pivot_entity = esper.create_entity()
+        esper.add_component(pivot_entity, CubeComponent.CubeComponent(self.ent_id, len(self.pivots) - 1))
+        esper.add_component(pivot_entity, TransformComponent.TransformComponent(glm.vec3(position)))
+        esper.add_component(pivot_entity, NameTagComponent.NameTagComponent("cube"))
+
+        self.reconstruct_cubes_from_pivots()
+
+        pass
+
+    def remove_pivot(self, pivot_index):
         pass
 
     def clean_up(self):

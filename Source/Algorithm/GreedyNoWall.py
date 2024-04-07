@@ -30,7 +30,7 @@ def h(a: glm.vec3, b: glm.vec3):
 
 
 def d(a: glm.vec3, b: glm.vec3):
-    return max(abs(a.x - b.x), abs(a.y - b.y), abs(a.z - b.z))
+    return glm.distance(a, b)
 
 
 def a_star_search(start: glm.ivec3, goal: glm.ivec3):

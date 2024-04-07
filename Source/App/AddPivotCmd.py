@@ -9,9 +9,9 @@ class AddPivotCommand(Command.Command):
         pass
 
     def execute(self):
-        dy.log.info("MoveCubeCmd execute")
+        dy.log.info("AddCubeCmd execute")
         pass
 
     def undo(self):
-        dy.log.info("MoveCubeCmd undo")
+        dy.log.info("AddCubeCmd undo")
         pass

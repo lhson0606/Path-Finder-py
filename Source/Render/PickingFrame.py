@@ -16,9 +16,9 @@ class PickInfo:
 class PickingFrame:
     def __init__(self, width, height):
         # probably move gl init to a different method
-        self.fbo = gl.glGenFramebuffers(1)
-        self.depth_texture = gl.glGenTextures(1)
-        self.color_texture = gl.glGenTextures(1)
+        self.fbo = int(gl.glGenFramebuffers(1))
+        self.depth_texture = int(gl.glGenTextures(1))
+        self.color_texture = int(gl.glGenTextures(1))
         self.width = width
         self.height = height
 
@@ -52,9 +52,9 @@ class PickingFrame:
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
 
     def __del__(self):
-        # gl.glDeleteFramebuffers(1, self.fbo)
-        # gl.glDeleteTextures(1, self.depth_texture)
-        # gl.glDeleteTextures(1, self.color_texture)
+        gl.glDeleteFramebuffers(1, self.fbo)
+        gl.glDeleteTextures(1, self.depth_texture)
+        gl.glDeleteTextures(1, self.color_texture)
         pass
 
     def EnableWriting(self):

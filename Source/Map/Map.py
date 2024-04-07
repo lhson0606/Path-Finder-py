@@ -8,6 +8,7 @@ import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.NameTagComponent as NameTagComponent
 import Source.Manager.ShaderManager as ShaderManager
 import Source.Render.Shader as Shader
+import numpy as np
 
 DEFAULT_MAP_DIR = "Resources/Map/"
 DEFAULT_MAP_NAME = "map"
@@ -39,6 +40,7 @@ class Map:
         self.goal = glm.ivec2(0, 0)
         self.shape_count = 0
         self.full_path = DEFAULT_MAP_DIR + name
+        self.look_up = np.array([[[0 for _ in range(l)] for _ in range(h)] for _ in range(w)])
         self.is_draft = True
 
     def create(self):
@@ -63,6 +65,7 @@ class Map:
             self.start = glm.ivec2(int(lines[1].split(",")[0]), int(lines[1].split(",")[1]))
             self.goal = glm.ivec2(int(lines[1].split(",")[2]), int(lines[1].split(",")[3]))
 
+
             shape_count = int(lines[2].split(",")[0])
 
             for i in range(0, shape_count):
@@ -81,6 +84,9 @@ class Map:
                 esper.add_component(new_shape_ent, shape_comp)
                 esper.add_component(new_shape_ent, render_comp)
                 esper.add_component(new_shape_ent, NameTagComponent.NameTagComponent("shape"))
+
+                for pos in shape_comp.cube_position:
+                    self.look_up[pos.x][pos.y][pos.z] = 1
 
         except Exception as e:
             raise ValueError("Invalid map file: " + str(self.full_path) + " " + str(e))

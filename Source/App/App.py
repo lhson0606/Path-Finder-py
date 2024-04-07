@@ -55,7 +55,6 @@ def key_callback(window, key, scancode, action, mods):
     if(key == glfw.KEY_F2 and action == glfw.PRESS):
         app.cur_map_context.editor.redo()
 
-
 def cursor_position_callback(window, xpos, ypos):
     app = glfw.get_window_user_pointer(window)
 
@@ -72,6 +71,15 @@ def cursor_position_callback(window, xpos, ypos):
         app.update_view()
 
     app.mousePos = glm.vec2(xpos, ypos)
+
+    if app.cur_map_context.editor.mode == Source.App.Editor.Mode.ADDING_PIVOT and app.context == app.Context.EDITOR:
+        app.cur_map_context.editor.pause_time += imgui.get_io().delta_time
+        if app.cur_map_context.editor.pause_time > 0.016:
+            app.cur_map_context.editor.pause_time = 0
+        else:
+            return
+        obj = app.cur_map_context.picking_processor.pick(xpos, ypos)
+        app.cur_map_context.editor.placing(obj)
 
     pass
 
@@ -181,7 +189,7 @@ class App:
         self.height = 720
         self.window_name = ("\"Within those eyes burned a lust for the female body, "
                             "stained with the same carnal desire that men possessed for women\"")
-        self.clear_color = glm.vec4(0.2, 0.3, 0.3, 1.0)
+        self.clear_color = glm.vec4(0.2, 0.3, 0.3, -1)
         self.io = None
         self.key_pressed = None
         self.key_released = None
@@ -344,12 +352,13 @@ class App:
         # set current context
         glfw.set_window_user_pointer(self.window, self)
         # ENABLE ALPHA BLENDING
-        # gl.glEnable(gl.GL_BLEND)
+        gl.glEnable(gl.GL_BLEND)
         # set the blend function
-        # gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE)
+        gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE)
         # depth test
         gl.glEnable(gl.GL_DEPTH_TEST)
         # gl.glBlendFuncSeparate(-1, -1, -1, -1)
+        gl.glEnable(gl.GL_CULL_FACE)
 
     def on_close(self):
         self.impl.shutdown()

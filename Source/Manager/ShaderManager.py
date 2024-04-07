@@ -10,6 +10,8 @@ SHAPE_SHADER_VERT_PATH = "Resources/GLSL/shape.vert"
 SHAPE_SHADER_FRAG_PATH = "Resources/GLSL/shape.frag"
 PICKING_DATA_SHADER_VERT_PATH = "Resources/GLSL/picking_data.vert"
 PICKING_DATA_SHADER_FRAG_PATH = "Resources/GLSL/picking_data.frag"
+TEMP_SHAPE_SHADER_VERT_PATH = "Resources/GLSL/temp_shape.vert"
+TEMP_SHAPE_SHADER_FRAG_PATH = "Resources/GLSL/temp_shape.frag"
 
 
 class ShaderType(Enum):
@@ -18,6 +20,7 @@ class ShaderType(Enum):
     GRID_SHADER = 2
     SHAPE_SHADER = 3
     PICKING_DATA_SHADER = 4
+    TEMP_SHAPE_SHADER = 5
 
 class ShaderManager:
 
@@ -39,3 +42,4 @@ class ShaderManager:
         self.load_shaders(ShaderType.GRID_SHADER, GRID_SHADER_VERT_PATH, GRID_SHADER_FRAG_PATH)
         self.load_shaders(ShaderType.SHAPE_SHADER, SHAPE_SHADER_VERT_PATH, SHAPE_SHADER_FRAG_PATH)
         self.load_shaders(ShaderType.PICKING_DATA_SHADER, PICKING_DATA_SHADER_VERT_PATH, PICKING_DATA_SHADER_FRAG_PATH)
+        self.load_shaders(ShaderType.TEMP_SHAPE_SHADER, TEMP_SHAPE_SHADER_VERT_PATH, TEMP_SHAPE_SHADER_FRAG_PATH)
