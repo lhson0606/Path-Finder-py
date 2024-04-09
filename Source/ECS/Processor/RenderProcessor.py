@@ -9,6 +9,8 @@ import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.TempShapeComponent as TempShapeComponent
 import Source.ECS.Component.SkyBoxComponent as SkyBoxComponent
 import Source.ECS.Component.OutliningComponent as OutliningComponent
+import Source.ECS.Component.StartPointComponent as StartPointComponent
+import Source.ECS.Component.GoalPointComponent as GoalPointComponent
 import Source.Render.Shader as Shader
 from Source.Manager.ShaderManager import ShaderType as ShaderType
 
@@ -31,6 +33,22 @@ class RenderProcessor(esper.Processor):
                     self.render_as_skybox(ent, render_data.shader)
         pass
 
+        # render all entities with render component
+        for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
+            shader_type = render_data.shader_type
+
+            match shader_type:
+                case ShaderType.START_POINT_SHADER:
+                    self.render_as_start_point(ent, render_data.shader)
+
+        # render all entities with render component
+        for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
+            shader_type = render_data.shader_type
+
+            match shader_type:
+                case ShaderType.GOAL_POINT_SHADER:
+                    self.render_as_goal_point(ent, render_data.shader)
+
         for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
             shader_type = render_data.shader_type
 
@@ -46,7 +64,6 @@ class RenderProcessor(esper.Processor):
             match shader_type:
                 case ShaderType.TEMP_SHAPE_SHADER:
                     self.render_as_temp_shape(ent, render_data.shader)
-
 
 
         # render all entities with render component
@@ -99,7 +116,7 @@ class RenderProcessor(esper.Processor):
         outline_shader = outline_comp.shader
         gl.glStencilFunc(gl.GL_NOTEQUAL, 1, 0xFF)
         gl.glStencilMask(0x00)
-        gl.glDisable(gl.GL_DEPTH_TEST)
+        # gl.glDisable(gl.GL_DEPTH_TEST)
 
         outline_shader.use()
 
@@ -114,7 +131,7 @@ class RenderProcessor(esper.Processor):
         # reset state
         gl.glStencilMask(0xFF)
         gl.glStencilFunc(gl.GL_ALWAYS, 0, 0xFF)
-        gl.glEnable(gl.GL_DEPTH_TEST)
+        # gl.glEnable(gl.GL_DEPTH_TEST)
         pass
 
     def render_as_temp_shape(self, ent, shader):
@@ -178,5 +195,40 @@ class RenderProcessor(esper.Processor):
         # gl.glEnable(gl.GL_CULL_FACE)
         # gl.glEnable(gl.GL_BLEND)
         gl.glDepthFunc(gl.GL_LESS)
+        pass
+
+    def render_as_start_point(self, ent, shader):
+        start_point_data = esper.component_for_entity(ent, StartPointComponent.StartPointComponent)
+        texture = start_point_data.texture
+
+        shader.use()
+
+        texture.load_to_slot(0)
+        texture.bind()
+
+        shader.set_mat4("projection", self.app.projection)
+        shader.set_mat4("view", self.app.cur_map_context.camera.view)
+        gl.glBindVertexArray(start_point_data.vao)
+        gl.glDrawElements(gl.GL_TRIANGLES, start_point_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+        gl.glBindVertexArray(0)
+        shader.stop()
+        pass
+
+    def render_as_goal_point(self, ent, shader):
+        goal_point_data = esper.component_for_entity(ent, GoalPointComponent.GoalPointComponent)
+        texture = goal_point_data.texture
+
+        shader.use()
+
+        texture.load_to_slot(0)
+        texture.bind()
+
+        shader.set_mat4("projection", self.app.projection)
+        shader.set_mat4("view", self.app.cur_map_context.camera.view)
+        gl.glBindVertexArray(goal_point_data.vao)
+        gl.glDrawElements(gl.GL_TRIANGLES, goal_point_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+        gl.glBindVertexArray(0)
+        shader.stop()
+
         pass
 

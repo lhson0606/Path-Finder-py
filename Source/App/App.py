@@ -16,6 +16,8 @@ import Source.ECS.Component.GridComponent as GridComponent
 import Source.ECS.Component.SkyBoxComponent as SkyBoxComponent
 
 import Source.Manager.ShaderManager as ShaderManager
+import Source.Manager.TextureManager as TextureManager
+
 import Source.Map.Map
 import Source.Render.Camera as Camera
 import Source.Util.dy as dy
@@ -202,6 +204,7 @@ class App:
         self.mousePos = glm.vec2(-1, -1)
         self.window = self.impl_glfw_init()
         self.shader_manager = ShaderManager.ShaderManager()
+        self.texture_manager = TextureManager.TextureManager()
         self.projection = glm.perspective(glm.radians(45), float(self.width) / self.height, 0.1, 500.0)
 
         # imgui modal state
@@ -436,11 +439,40 @@ class App:
 
     def draw_editor_window(self):
         imgui.set_next_window_position(self.width - 400, 50)
-        imgui.set_next_window_size(400, 200)
+        imgui.set_next_window_size(400, 350)
         imgui.begin("Editor", False, imgui.WINDOW_NO_RESIZE |
                     imgui.WINDOW_NO_MOVE)
 
         imgui.text("Edit")
+
+        if imgui.button("Add shape"):
+            pass
+
+        if imgui.button("Edit start point"):
+            pass
+
+        if imgui.button("Edit goal point"):
+            pass
+
+        if imgui.button("Add passing point"):
+            pass
+
+        imgui.text("Visualize")
+
+        if imgui.button("Run A Star"):
+            pass
+
+        if imgui.button("Run greedy"):
+            pass
+
+        if imgui.button("Run BFS"):
+            pass
+
+        if imgui.button("Movable shapes"):
+            pass
+
+        if imgui.button("Reset shapes position"):
+            pass
 
         imgui.text("Debug")
 
@@ -574,6 +606,9 @@ class App:
         # cooking shaders
         self.shader_manager.hard_load_all_shaders()
 
+        # load textures
+        self.texture_manager.hard_load_all_textures()
+
         # change to EDITOR context (default)
         self.change_context(self.Context.EDITOR)
 
@@ -630,8 +665,7 @@ class App:
         if not target_map.is_draft:
             dy.log.info("Loading \'" + target_map.name + "\' data")
             target_map.load(
-                ShaderManager.ShaderType.SHAPE_SHADER, self.shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_SHADER),
-                ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER, self.shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER)
+                self
             )
 
         # ===== create a grid entity =====
@@ -639,8 +673,8 @@ class App:
         esper.add_component(new_grid_entity,
                             ECS.Component.GridComponent.GridComponent(target_map.width, target_map.height))
         esper.add_component(new_grid_entity, RenderComponent.RenderComponent(
-            new_map_context.grid_shader,
-            ShaderManager.ShaderType.GRID_SHADER
+            ShaderManager.ShaderType.GRID_SHADER,
+            new_map_context.grid_shader
         ))
         # ==================================
 
@@ -649,8 +683,8 @@ class App:
         esper.add_component(new_sky_box_entity, SkyBoxComponent.SkyBoxComponent())
         skybox_shader = self.shader_manager.get_shader(ShaderManager.ShaderType.SKY_BOX_SHADER)
         esper.add_component(new_sky_box_entity, RenderComponent.RenderComponent(
-            skybox_shader,
-            ShaderManager.ShaderType.SKY_BOX_SHADER)
+            ShaderManager.ShaderType.SKY_BOX_SHADER,
+            skybox_shader)
         )
         # ==================================
 

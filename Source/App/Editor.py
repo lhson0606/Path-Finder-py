@@ -113,8 +113,8 @@ class Editor:
         temp_shape_comp.load()
         shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.TEMP_SHAPE_SHADER)
         render_comp = RenderComponent.RenderComponent(
-            shader,
-            ShaderManager.ShaderType.TEMP_SHAPE_SHADER)
+            ShaderManager.ShaderType.TEMP_SHAPE_SHADER,
+            shader)
         new_temp_shape_ent = esper.create_entity()
         esper.add_component(new_temp_shape_ent, temp_shape_comp)
         esper.add_component(new_temp_shape_ent, render_comp)
@@ -177,6 +177,9 @@ class Editor:
             self.render_shape_editor()
 
     def render_cube_editor(self):
+        if self.cur_entity == -1:
+            return
+
         cube_comp = esper.component_for_entity(self.cur_entity, CubeComponent.CubeComponent)
         transform_comp = esper.component_for_entity(self.cur_entity, TransformComponent.TransformComponent)
 

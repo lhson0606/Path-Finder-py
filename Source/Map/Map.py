@@ -7,8 +7,12 @@ import Source.ECS.Component.ShapeComponent as ShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.NameTagComponent as NameTagComponent
 import Source.ECS.Component.OutliningComponent as OutliningComponent
+import Source.ECS.Component.StartPointComponent as StartPointComponent
+import Source.ECS.Component.GoalPointComponent as GoalPointComponent
 import Source.Manager.ShaderManager as ShaderManager
+import Source.ECS.Component.TransformComponent as TransformComponent
 import Source.Render.Shader as Shader
+import Source.Manager.TextureManager as TextureManager
 import numpy as np
 
 DEFAULT_MAP_DIR = "Resources/Map/"
@@ -43,13 +47,20 @@ class Map:
         self.full_path = DEFAULT_MAP_DIR + name
         self.look_up = np.array([[[0 for _ in range(l)] for _ in range(h)] for _ in range(w)])
         self.is_draft = True
+        self.goal_ent = -1
+        self.start_ent = -1
+        self.app = None
+        self.passing_points = []
 
     def create(self):
         count = 0
 
         pass
 
-    def load(self, shader_type: ShaderManager.ShaderType, shape_shader: Shader, outlining_type: ShaderManager.ShaderType, outlining_shader: Shader):
+    def load(self, app):
+        self.app = app
+        shader_manager = app.shader_manager
+        texture_manager = app.texture_manager
         with open(self.full_path) as file:
             lines = file.readlines()
 
@@ -63,8 +74,8 @@ class Map:
                 raise ValueError("Not implemented map format: " + lines[0])
             self.width = int(lines[0].split(",")[0])
             self.height = int(lines[0].split(",")[1])
-            self.start = glm.ivec2(int(lines[1].split(",")[0]), int(lines[1].split(",")[1]))
-            self.goal = glm.ivec2(int(lines[1].split(",")[2]), int(lines[1].split(",")[3]))
+            self.create_start_point(glm.ivec3(int(lines[1].split(",")[0]), int(lines[1].split(",")[1]), 0))
+            self.create_goal_point(glm.ivec3(int(lines[1].split(",")[2]), int(lines[1].split(",")[3]), 0))
 
 
             shape_count = int(lines[2].split(",")[0])
@@ -80,9 +91,9 @@ class Map:
 
                 new_shape_ent = esper.create_entity()
                 shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots)
-                outline_comp = OutliningComponent.OutliningComponent(outlining_type, outlining_shader)
+                outline_comp = OutliningComponent.OutliningComponent(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER, shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER))
                 shape_comp.gl_init()
-                render_comp = RenderComponent.RenderComponent(shape_shader, shader_type)
+                render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.SHAPE_SHADER, shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_SHADER))
                 esper.add_component(new_shape_ent, shape_comp)
                 esper.add_component(new_shape_ent, render_comp)
                 esper.add_component(new_shape_ent, NameTagComponent.NameTagComponent("shape"))
@@ -111,3 +122,41 @@ class Map:
     @staticmethod
     def is_map_name_existed(name, directory=DEFAULT_MAP_DIR):
         return dy.file_exists(directory + name)
+
+    def create_start_point(self, pos):
+        self.start = pos
+        self.start_ent = esper.create_entity()
+
+        transform_comp = TransformComponent.TransformComponent(pos)
+        shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.START_POINT_SHADER)
+        render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.START_POINT_SHADER, shader)
+        texture = self.app.texture_manager.get_texture(TextureManager.TextureType.START_CUBE)
+        shader.use()
+        shader.set_mat4("model", transform_comp.get_world_transform())
+        shader.stop()
+        start_point_component = StartPointComponent.StartPointComponent(texture)
+
+        esper.add_component(self.start_ent, transform_comp)
+        esper.add_component(self.start_ent, render_comp)
+        esper.add_component(self.start_ent, NameTagComponent.NameTagComponent("start"))
+        esper.add_component(self.start_ent, start_point_component)
+        pass
+
+    def create_goal_point(self, pos):
+        self.goal = pos
+        self.goal_ent = esper.create_entity()
+
+        transform_comp = TransformComponent.TransformComponent(pos)
+        shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.GOAL_POINT_SHADER)
+        render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.GOAL_POINT_SHADER, shader)
+        texture = self.app.texture_manager.get_texture(TextureManager.TextureType.GOAL_CUBE)
+        shader.use()
+        shader.set_mat4("model", transform_comp.get_world_transform())
+        shader.stop()
+        goal_point_comp = GoalPointComponent.GoalPointComponent(texture)
+
+        esper.add_component(self.goal_ent, transform_comp)
+        esper.add_component(self.goal_ent, render_comp)
+        esper.add_component(self.goal_ent, NameTagComponent.NameTagComponent("goal"))
+        esper.add_component(self.goal_ent, goal_point_comp)
+        pass
