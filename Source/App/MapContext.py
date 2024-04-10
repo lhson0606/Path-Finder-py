@@ -27,3 +27,4 @@ class MapContext:
         self.render_processor.update_grid_view(self.map.width, self.map.height)
         self.update_view()
         self.update_projection(proj)
+        self.map.switch_context()

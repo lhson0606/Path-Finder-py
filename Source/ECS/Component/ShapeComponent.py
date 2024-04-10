@@ -10,6 +10,8 @@ import Source.ECS.Component.NameTagComponent as NameTagComponent
 
 import Source.Algorithm.GreedyNoWall as GreedyNoWall
 
+import Source.Map.Map as Map
+
 import Source.Util.dy as dy
 
 
@@ -76,7 +78,7 @@ def build_cubes(shape_ent, pivots, cube_position):
 
 
 class ShapeComponent:
-    def __init__(self, ent_id, pivots: list[glm.ivec3]):
+    def __init__(self, ent_id, pivots: list[glm.ivec3], m: Map):
         self.pivots = pivots
         self.ent_id = ent_id
         # store unique cube position
@@ -92,6 +94,7 @@ class ShapeComponent:
         self.vbo_model_col_3 = -1
         self.ebo = -1
         self.vertex_count = 0
+        self.map = m
 
     def gl_init(self):
         self.vao = int(gl.glGenVertexArrays(1))
@@ -284,6 +287,8 @@ class ShapeComponent:
         self.generate_cubes()
         self.update_data()
 
+        self.map.update_look_up()
+
         pass
 
     def clear_all_none_pivot_cubes(self):
@@ -322,6 +327,8 @@ class ShapeComponent:
         self.recreate_gl()
         self.update_data()
 
+        self.map.update_look_up()
+
         return pivot_entity
         pass
 
@@ -333,6 +340,7 @@ class ShapeComponent:
         self.generate_cubes()
         self.recreate_gl()
         self.update_data()
+        self.map.update_look_up()
         pass
 
     def clean_up(self):

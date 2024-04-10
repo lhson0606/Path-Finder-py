@@ -11,6 +11,7 @@ import Source.ECS.Component.StartPointComponent as StartPointComponent
 import Source.ECS.Component.GoalPointComponent as GoalPointComponent
 import Source.Manager.ShaderManager as ShaderManager
 import Source.ECS.Component.TransformComponent as TransformComponent
+import Source.ECS.Component.CubeComponent as CubeComponent
 import Source.Render.Shader as Shader
 import Source.Manager.TextureManager as TextureManager
 import numpy as np
@@ -45,7 +46,7 @@ class Map:
         self.goal = glm.ivec2(0, 0)
         self.shape_count = 0
         self.full_path = DEFAULT_MAP_DIR + name
-        self.look_up = np.array([[[0 for _ in range(l)] for _ in range(h)] for _ in range(w)])
+        self.look_up = np.array([[[0 for _ in range(0, l+1)] for _ in range(0, h+1)] for _ in range(0, w+1)])
         self.is_draft = True
         self.goal_ent = -1
         self.start_ent = -1
@@ -74,6 +75,9 @@ class Map:
                 raise ValueError("Not implemented map format: " + lines[0])
             self.width = int(lines[0].split(",")[0])
             self.height = int(lines[0].split(",")[1])
+
+            self.look_up = np.array([[[0 for _ in range(0, self.length + 1)] for _ in range(0, self.height + 1)] for _ in range(0, self.width + 1)])
+
             self.create_start_point(glm.ivec3(int(lines[1].split(",")[0]), int(lines[1].split(",")[1]), 0))
             self.create_goal_point(glm.ivec3(int(lines[1].split(",")[2]), int(lines[1].split(",")[3]), 0))
 
@@ -90,7 +94,7 @@ class Map:
                     pivots.append(glm.ivec3(int(shape_data[j]), int(shape_data[j + 1]), 0))
 
                 new_shape_ent = esper.create_entity()
-                shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots)
+                shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots, self)
                 outline_comp = OutliningComponent.OutliningComponent(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER, shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER))
                 shape_comp.gl_init()
                 render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.SHAPE_SHADER, shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_SHADER))
@@ -159,4 +163,41 @@ class Map:
         esper.add_component(self.goal_ent, render_comp)
         esper.add_component(self.goal_ent, NameTagComponent.NameTagComponent("goal"))
         esper.add_component(self.goal_ent, goal_point_comp)
+        pass
+
+    def switch_context(self):
+        transform_comp = esper.component_for_entity(self.start_ent, TransformComponent.TransformComponent)
+        shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.GOAL_POINT_SHADER)
+        shader.use()
+        shader.set_mat4("model", transform_comp.get_world_transform())
+        shader.stop()
+
+        transform_comp = esper.component_for_entity(self.goal_ent, TransformComponent.TransformComponent)
+        shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.START_POINT_SHADER)
+        shader.use()
+        shader.set_mat4("model", transform_comp.get_world_transform())
+        shader.stop()
+
+    def is_wall(self, pos: glm.ivec3):
+
+        if pos.x < 1 or pos.y < 1 or pos.z < 0 or pos.x > self.width or pos.y > self.height or pos.z >= self.length:
+            return True
+
+        return self.look_up[pos.x][pos.y][pos.z] == 1
+
+    def update_look_up(self):
+        self.clear_look_up()
+
+        for ent, (cube_comp) in esper.get_component(CubeComponent.CubeComponent):
+            transform = esper.component_for_entity(ent, TransformComponent.TransformComponent)
+            look_up_pos = glm.ivec3(transform.position)
+            self.look_up[look_up_pos.x][look_up_pos.y][look_up_pos.z] = 1
+
+        pass
+
+    def clear_look_up(self):
+        for x in range(self.width):
+            for y in range(self.height):
+                for z in range(self.length):
+                    self.look_up[x][y][z] = 0
         pass

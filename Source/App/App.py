@@ -438,41 +438,6 @@ class App:
         pass
 
     def draw_editor_window(self):
-        imgui.set_next_window_position(self.width - 400, 50)
-        imgui.set_next_window_size(400, 350)
-        imgui.begin("Editor", False, imgui.WINDOW_NO_RESIZE |
-                    imgui.WINDOW_NO_MOVE)
-
-        imgui.text("Edit")
-
-        if imgui.button("Add shape"):
-            pass
-
-        if imgui.button("Edit start point"):
-            pass
-
-        if imgui.button("Edit goal point"):
-            pass
-
-        if imgui.button("Add passing point"):
-            pass
-
-        imgui.text("Visualize")
-
-        if imgui.button("Run A Star"):
-            pass
-
-        if imgui.button("Run greedy"):
-            pass
-
-        if imgui.button("Run BFS"):
-            pass
-
-        if imgui.button("Movable shapes"):
-            pass
-
-        if imgui.button("Reset shapes position"):
-            pass
 
         imgui.text("Debug")
 
@@ -515,7 +480,7 @@ class App:
                 imgui.text("Tile: " + str(tile))
                 imgui.end()
 
-        imgui.end()
+
         pass
 
     def on_imgui_render(self):

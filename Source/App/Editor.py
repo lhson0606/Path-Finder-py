@@ -14,6 +14,7 @@ import Source.ECS.Component.OutliningComponent as OutliningComponent
 import Source.App.MoveCubeCmd as MoveCubeCmd
 import Source.Manager.ShaderManager as ShaderManager
 import Source.App.AddPivotCmd as AddPivotCmd
+import Source.Algorithm.VisualizedAStar as VisualizedAStar
 import imgui
 
 import esper
@@ -44,6 +45,7 @@ class Editor:
         self.cur_shape = -1
         self.cur_temp_shape = -1
         self.new_pivot_pos = glm.ivec3(0)
+        self.current_algorithm = None
 
     def execute(self, command: Command):
         self.history.append(command)
@@ -167,6 +169,56 @@ class Editor:
         pass
 
     def on_imgui_render(self):
+        imgui.set_next_window_position(self.app.width - 400, 50)
+        imgui.set_next_window_size(400, 350)
+        imgui.begin("Editor", False, imgui.WINDOW_NO_RESIZE |
+                    imgui.WINDOW_NO_MOVE)
+
+        imgui.text("Edit")
+
+        if imgui.button("Add shape"):
+            pass
+
+        if imgui.button("Edit start point"):
+            pass
+
+        if imgui.button("Edit goal point"):
+            pass
+
+        if imgui.button("Add passing point"):
+            pass
+
+        imgui.text("Visualize")
+
+        if imgui.button("Run A Star"):
+            if self.current_algorithm is not None:
+                self.current_algorithm.clean_up()
+                self.current_algorithm = None
+
+            self.current_algorithm = VisualizedAStar.VisualizedAStar(self.app.cur_map_context, self.app)
+            self.current_algorithm.solve_and_visualize()
+            pass
+
+        if imgui.button("Clear path"):
+            if self.current_algorithm is not None:
+                self.current_algorithm.clean_up()
+                self.current_algorithm = None
+            pass
+
+        if imgui.button("Run greedy"):
+            pass
+
+        if imgui.button("Run BFS"):
+            pass
+
+        if imgui.button("Movable shapes"):
+            pass
+
+        if imgui.button("Reset shapes position"):
+            pass
+
+        imgui.end()
+
         if self.mode == Mode.NONE:
             return
 
