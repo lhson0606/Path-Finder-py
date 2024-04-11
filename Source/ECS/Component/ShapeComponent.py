@@ -311,6 +311,10 @@ class ShapeComponent:
     pass
 
     def add_pivot(self, position):
+        if not self.map.is_valid_position(position):
+            dy.log.error("Invalid position for shape entity " + str(self.ent_id) + " at " + str(position) + ".")
+            return -1
+
         new_pos = glm.ivec3(position)
         self.pivots.append(new_pos)
 

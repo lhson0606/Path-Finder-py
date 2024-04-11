@@ -284,7 +284,7 @@ class App:
         new_map_context.camera = Camera.Camera()
         self.map_contexts["default"] = new_map_context
         self.cur_map_context = new_map_context
-        new_map = Source.Map.Map.open_existed_map("I:\Repos\Python\Gizmo\Resources\Map\map1.txt")
+        new_map = Source.Map.Map.open_existed_map("I:/Repos/Python/Gizmo/Resources/Map/test_map.txt")
         self.init_map(new_map)
         pass
 
@@ -334,7 +334,7 @@ class App:
 
             self.on_imgui_render()
 
-            show_test_window()
+            # show_test_window()
 
             imgui.render()
             self.impl.render(imgui.get_draw_data())
@@ -439,7 +439,10 @@ class App:
 
     def draw_editor_window(self):
 
-        imgui.text("Debug")
+        imgui.set_next_window_position(200, 50)
+        imgui.set_next_window_size(200, 150)
+        imgui.begin("Debug", False, imgui.WINDOW_NO_RESIZE |
+                    imgui.WINDOW_NO_MOVE)
 
         # ====== Debug camera ======
         checked, self.cur_map_context.camera.will_print_camera_using_imgui = imgui.checkbox("Show camera info",
@@ -480,7 +483,7 @@ class App:
                 imgui.text("Tile: " + str(tile))
                 imgui.end()
 
-
+        imgui.end()
         pass
 
     def on_imgui_render(self):
@@ -676,6 +679,7 @@ class App:
         cur_world = self.cur_world_name
 
         if esper.list_worlds().__len__() > 1:
+            next_world = "default"
             for next_world in esper.list_worlds():
                 if next_world != cur_world:
                     self.load_map(next_world)
@@ -684,5 +688,6 @@ class App:
             self.opened_map.pop(cur_world)
             self.map_contexts.pop(cur_world)
             self.opened_map_count -= 1
+            self.cur_map_context = self.map_contexts[next_world]
 
         pass

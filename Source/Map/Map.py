@@ -51,7 +51,7 @@ class Map:
         self.goal_ent = -1
         self.start_ent = -1
         self.app = None
-        self.passing_points = []
+        self.passing_point_positions = []
 
     def create(self):
         count = 0
@@ -78,9 +78,16 @@ class Map:
 
             self.look_up = np.array([[[0 for _ in range(0, self.length + 1)] for _ in range(0, self.height + 1)] for _ in range(0, self.width + 1)])
 
-            self.create_start_point(glm.ivec3(int(lines[1].split(",")[0]), int(lines[1].split(",")[1]), 0))
-            self.create_goal_point(glm.ivec3(int(lines[1].split(",")[2]), int(lines[1].split(",")[3]), 0))
+            second_line_data = lines[1].split(",")
 
+            self.create_start_point(glm.ivec3(int(second_line_data[0]), int(second_line_data[1]), 0))
+            self.create_goal_point(glm.ivec3(int(second_line_data[2]), int(second_line_data[3]), 0))
+
+            # check for passing points
+            if len(second_line_data) > 4:
+                for i in range(4, len(second_line_data), 2):
+                    pos = glm.ivec3(int(second_line_data[i]), int(second_line_data[i + 1]), 0)
+                    self.passing_point_positions.append(pos)
 
             shape_count = int(lines[2].split(",")[0])
 
@@ -108,6 +115,7 @@ class Map:
                     self.look_up[pos.x][pos.y][pos.z] = 1
 
         except Exception as e:
+            dy.log.error("Invalid map file: " + str(self.full_path) + " " + str(e))
             raise ValueError("Invalid map file: " + str(self.full_path) + " " + str(e))
         pass
 
@@ -166,24 +174,56 @@ class Map:
         pass
 
     def switch_context(self):
-        transform_comp = esper.component_for_entity(self.start_ent, TransformComponent.TransformComponent)
-        shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.GOAL_POINT_SHADER)
-        shader.use()
-        shader.set_mat4("model", transform_comp.get_world_transform())
-        shader.stop()
+        if self.start_ent == -1 or self.goal_ent == -1:
+            return
 
-        transform_comp = esper.component_for_entity(self.goal_ent, TransformComponent.TransformComponent)
+        transform_comp = esper.component_for_entity(self.start_ent, TransformComponent.TransformComponent)
         shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.START_POINT_SHADER)
         shader.use()
         shader.set_mat4("model", transform_comp.get_world_transform())
         shader.stop()
 
-    def is_wall(self, pos: glm.ivec3):
+        transform_comp = esper.component_for_entity(self.goal_ent, TransformComponent.TransformComponent)
+        shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.GOAL_POINT_SHADER)
+        shader.use()
+        shader.set_mat4("model", transform_comp.get_world_transform())
+        shader.stop()
 
+    def is_wall(self, pos: glm.ivec3):
         if pos.x < 1 or pos.y < 1 or pos.z < 0 or pos.x > self.width or pos.y > self.height or pos.z >= self.length:
-            return True
+            return False
 
         return self.look_up[pos.x][pos.y][pos.z] == 1
+
+    def is_moveable(self, cur_pos: glm.ivec3, next_pos: glm.ivec3):
+
+        if next_pos.x < 1 or next_pos.y < 1 or next_pos.z < 0 or next_pos.x > self.width or next_pos.y > self.height or next_pos.z >= self.length:
+            return False
+
+        if self.look_up[next_pos.x][next_pos.y][next_pos.z] == 1:
+            return False
+
+        if cur_pos.x == next_pos.x and cur_pos.y == next_pos.y and cur_pos.z == next_pos.z:
+            return False
+
+        # prevent from going inside the shape
+        if cur_pos.x == next_pos.x:
+            off_set = glm.ivec2(next_pos.y - cur_pos.y, next_pos.z - cur_pos.z)
+            if self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y, cur_pos.z + off_set.y)) and self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y + off_set.x, cur_pos.z)):
+                return False
+
+        if cur_pos.y == next_pos.y:
+            off_set = glm.ivec2(next_pos.x - cur_pos.x, next_pos.z - cur_pos.z)
+            if self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y, cur_pos.z + off_set.y)) and self.is_wall(glm.ivec3(cur_pos.x + off_set.x, cur_pos.y, cur_pos.z)):
+                return False
+
+        if cur_pos.z == next_pos.z:
+            off_set = glm.ivec2(next_pos.x - cur_pos.x, next_pos.y - cur_pos.y)
+            if self.is_wall(glm.ivec3(cur_pos.x + off_set.x, cur_pos.y, cur_pos.z)) and self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y + off_set.y, cur_pos.z)):
+                return False
+
+        return True
+
 
     def update_look_up(self):
         self.clear_look_up()
@@ -201,3 +241,22 @@ class Map:
                 for z in range(self.length):
                     self.look_up[x][y][z] = 0
         pass
+
+    def is_valid_position(self, pos: glm.ivec3):
+        return pos.x >= 1 and pos.y >= 1 and pos.z >= 0 and pos.x <= self.width and pos.y <= self.height and pos.z < self.length
+
+    def get_neighbors(self, current):
+        neighbors = []
+
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                for k in range(-1, 2):
+                    if i == 0 and j == 0 and k == 0:
+                        continue
+
+                    if not self.is_moveable(current, glm.ivec3(current.x + i, current.y + j, current.z + k)):
+                        continue
+
+                    neighbors.append(glm.ivec3(current.x + i, current.y + j, current.z + k))
+
+        return neighbors

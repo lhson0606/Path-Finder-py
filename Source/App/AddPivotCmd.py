@@ -15,9 +15,15 @@ class AddPivotCommand(Command.Command):
     def execute(self):
         shape_data = esper.component_for_entity(self.shape_ent, Source.ECS.Component.ShapeComponent.ShapeComponent)
         self.new_pivot_ent = shape_data.add_pivot(self.pivot)
+
+        if self.new_pivot_ent == -1:
+            return False
+
+        return True
         pass
 
     def undo(self):
         shape_data = esper.component_for_entity(self.shape_ent, Source.ECS.Component.ShapeComponent.ShapeComponent)
         shape_data.remove_pivot(shape_data.pivots.__len__()-1, self.new_pivot_ent)
+        return True
         pass

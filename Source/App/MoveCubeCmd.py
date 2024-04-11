@@ -21,6 +21,7 @@ class MoveCubeCmd(Command.Command):
         shape_ent = cube_comp.shape_entity
         shape_comp = esper.component_for_entity(shape_ent, ShapeComponent.ShapeComponent)
         shape_comp.move_pivot(cube_comp.pivot_index, self.position)
+        return True
         pass
 
     def undo(self):
@@ -30,4 +31,5 @@ class MoveCubeCmd(Command.Command):
         shape_ent = cube_comp.shape_entity
         shape_comp = esper.component_for_entity(shape_ent, ShapeComponent.ShapeComponent)
         shape_comp.move_pivot(cube_comp.pivot_index, self.old_position)
+        return True
         pass

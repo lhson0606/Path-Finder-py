@@ -48,8 +48,12 @@ class Editor:
         self.current_algorithm = None
 
     def execute(self, command: Command):
-        self.history.append(command)
-        command.execute()
+        if command.execute():
+            self.history.append(command)
+        else:
+            self.app.pop_up_error("Command failed to execute, please check log for more information.")
+            return
+
         self.future.clear()
 
     def undo(self):
@@ -190,19 +194,19 @@ class Editor:
 
         imgui.text("Visualize")
 
+        if imgui.button("Clear path"):
+            if self.current_algorithm is not None:
+                self.current_algorithm.clean_up()
+                self.current_algorithm = None
+            pass
+
         if imgui.button("Run A Star"):
             if self.current_algorithm is not None:
                 self.current_algorithm.clean_up()
                 self.current_algorithm = None
 
-            self.current_algorithm = VisualizedAStar.VisualizedAStar(self.app.cur_map_context, self.app)
+            self.current_algorithm = VisualizedAStar.VisualizedAStar(self.app.cur_map_context.map, self.app)
             self.current_algorithm.solve_and_visualize()
-            pass
-
-        if imgui.button("Clear path"):
-            if self.current_algorithm is not None:
-                self.current_algorithm.clean_up()
-                self.current_algorithm = None
             pass
 
         if imgui.button("Run greedy"):
