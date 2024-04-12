@@ -8,21 +8,21 @@ import numpy as np
 import OpenGL.GL as gl
 import ctypes
 
-translation_vector = np.array([-0.25, -0.25, 0.25], dtype=np.float32)
+translation_vector = np.array([-0.125, -0.125, 0.125], dtype=np.float32)
 
 VERTICES = np.array([
     # Front face
-    [-0.5, -0.5, 0.5], [0, -0.5, 0.5], [0, 0, 0.5], [-0.5, 0, 0.5],
+    [-0.75, -0.75, 0.75], [0, -0.75, 0.75], [0, 0, 0.75], [-0.75, 0, 0.75],
     # Back face
-    [-0.5, -0.5, 0], [-0.5, 0, 0], [0, 0, 0], [0, -0.5, 0],
+    [-0.75, -0.75, 0], [-0.75, 0, 0], [0, 0, 0], [0, -0.75, 0],
     # Top face
-    [-0.5, 0, 0], [-0.5, 0, 0.5], [0, 0, 0.5], [0, 0, 0],
+    [-0.75, 0, 0], [-0.75, 0, 0.75], [0, 0, 0.75], [0, 0, 0],
     # Bottom face
-    [-0.5, -0.5, 0], [0, -0.5, 0], [0, -0.5, 0.5], [-0.5, -0.5, 0.5],
+    [-0.75, -0.75, 0], [0, -0.75, 0], [0, -0.75, 0.75], [-0.75, -0.75, 0.75],
     # Right face
-    [0, -0.5, 0], [0, 0, 0], [0, 0, 0.5], [0, -0.5, 0.5],
+    [0, -0.75, 0], [0, 0, 0], [0, 0, 0.75], [0, -0.75, 0.75],
     # Left face
-    [-0.5, -0.5, 0], [-0.5, -0.5, 0.5], [-0.5, 0, 0.5], [-0.5, 0, 0]
+    [-0.75, -0.75, 0], [-0.75, -0.75, 0.75], [-0.75, 0, 0.75], [-0.75, 0, 0]
 ], dtype=np.float32)
 
 # Add the translation vector to each vertex
@@ -44,8 +44,8 @@ INDICES = np.array([
 ], dtype=np.uint32)
 
 
-class PathComponent:
-    def __init__(self, app: App):
+class PassingPointsComponent:
+    def __init__(self, map: Map):
         self.vao = -1
         self.vbo_pos = -1
         self.vbo_model_col_0 = -1
@@ -53,15 +53,15 @@ class PathComponent:
         self.vbo_model_col_2 = -1
         self.vbo_model_col_3 = -1
         self.ebo = -1
-        self.path_entities = []
-        self.app = app
+        self.entities = []
+        self.map = map
         self.vertex_count = 0
 
     def build_path(self, positions):
         self.clean_up()
 
         for pos in positions:
-            self.create_path_cube(pos)
+            self.create_passing_point(pos)
 
         self.vao = int(gl.glGenVertexArrays(1))
         self.vbo_pos = int(gl.glGenBuffers(1))
@@ -107,11 +107,11 @@ class PathComponent:
 
         pass
 
-    def create_path_cube(self, pos: glm.vec3):
+    def create_passing_point(self, pos: glm.vec3):
         new_ent = esper.create_entity()
-        self.path_entities.append(new_ent)
+        self.entities.append(new_ent)
         transform = TransformComponent.TransformComponent(pos)
-        tag = NameTagComponent.NameTagComponent("cube path")
+        tag = NameTagComponent.NameTagComponent("passing point")
 
         esper.add_component(new_ent, transform)
         esper.add_component(new_ent, tag)
@@ -119,7 +119,7 @@ class PathComponent:
         pass
 
     def clean_up(self):
-        for ent in self.path_entities:
+        for ent in self.entities:
             esper.delete_entity(ent)
 
         gl.glDeleteVertexArrays(1, [self.vao])
@@ -134,14 +134,12 @@ class PathComponent:
         self.vbo_pos = -1
         self.ebo = -1
 
-        self.path_entities = []
-
         pass
 
     def get_batch_position_data(self):
         position = np.array([], dtype=np.float32)
 
-        for e in self.path_entities:
+        for e in self.entities:
             position = np.append(position, VERTICES)
 
         return position
@@ -150,7 +148,7 @@ class PathComponent:
         indices = np.array([], dtype=np.uint32)
         count = 0
 
-        for e in self.path_entities:
+        for e in self.entities:
             indices = np.append(indices, INDICES + 24 * count)
             count += 1
 
@@ -158,7 +156,7 @@ class PathComponent:
 
     def get_batch_transform_data(self, col: int):
         transforms = np.array([], dtype=np.float32)
-        for e in self.path_entities:
+        for e in self.entities:
             cube_transform = esper.component_for_entity(e,
                                                         TransformComponent.TransformComponent).get_world_transform()
             for j in range(24):

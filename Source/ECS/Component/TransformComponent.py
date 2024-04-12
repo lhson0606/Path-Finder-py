@@ -25,3 +25,7 @@ class TransformComponent:
     def set_position(self, position: glm.vec3):
         self.position = glm.vec3(position)
         self.update_world_matrix()
+
+    def translate(self, translation: glm.vec3):
+        self.position = self.position + translation
+        self.update_world_matrix()

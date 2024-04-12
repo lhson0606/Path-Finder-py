@@ -9,9 +9,11 @@ import Source.ECS.Component.NameTagComponent as NameTagComponent
 import Source.ECS.Component.OutliningComponent as OutliningComponent
 import Source.ECS.Component.StartPointComponent as StartPointComponent
 import Source.ECS.Component.GoalPointComponent as GoalPointComponent
+import Source.ECS.Component.MotionComponent as MotionComponent
 import Source.Manager.ShaderManager as ShaderManager
 import Source.ECS.Component.TransformComponent as TransformComponent
 import Source.ECS.Component.CubeComponent as CubeComponent
+import Source.ECS.Component.PassingPointsComponent as PassingPointsComponent
 import Source.Render.Shader as Shader
 import Source.Manager.TextureManager as TextureManager
 import numpy as np
@@ -52,6 +54,8 @@ class Map:
         self.start_ent = -1
         self.app = None
         self.passing_point_positions = []
+        self.shape_entities = []
+        self.passing_points_ent = -1
 
     def create(self):
         count = 0
@@ -88,6 +92,7 @@ class Map:
                 for i in range(4, len(second_line_data), 2):
                     pos = glm.ivec3(int(second_line_data[i]), int(second_line_data[i + 1]), 0)
                     self.passing_point_positions.append(pos)
+                self.create_passing_points(self.passing_point_positions)
 
             shape_count = int(lines[2].split(",")[0])
 
@@ -100,19 +105,7 @@ class Map:
                 for j in range(0, len(shape_data), 2):
                     pivots.append(glm.ivec3(int(shape_data[j]), int(shape_data[j + 1]), 0))
 
-                new_shape_ent = esper.create_entity()
-                shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots, self)
-                outline_comp = OutliningComponent.OutliningComponent(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER, shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER))
-                shape_comp.gl_init()
-                render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.SHAPE_SHADER, shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_SHADER))
-                esper.add_component(new_shape_ent, shape_comp)
-                esper.add_component(new_shape_ent, render_comp)
-                esper.add_component(new_shape_ent, NameTagComponent.NameTagComponent("shape"))
-                esper.add_component(new_shape_ent, outline_comp)
-
-
-                for pos in shape_comp.cube_position:
-                    self.look_up[pos.x][pos.y][pos.z] = 1
+                self.create_shape(pivots)
 
         except Exception as e:
             dy.log.error("Invalid map file: " + str(self.full_path) + " " + str(e))
@@ -260,3 +253,40 @@ class Map:
                     neighbors.append(glm.ivec3(current.x + i, current.y + j, current.z + k))
 
         return neighbors
+
+    def create_passing_points(self, passing_point_positions):
+        self.passing_points_ent = esper.create_entity()
+        passing_points_comp = PassingPointsComponent.PassingPointsComponent(self)
+        passing_points_comp.build_path(passing_point_positions)
+        render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.PASSING_POINT_SHADER, self.app.shader_manager.get_shader(ShaderManager.ShaderType.PASSING_POINT_SHADER))
+        tag = NameTagComponent.NameTagComponent("passing points")
+        esper.add_component(self.passing_points_ent, passing_points_comp)
+        esper.add_component(self.passing_points_ent, render_comp)
+        esper.add_component(self.passing_points_ent, tag)
+        pass
+
+    def create_shape(self, pivots):
+        new_shape_ent = esper.create_entity()
+        transform = TransformComponent.TransformComponent(glm.vec3(0, 0, 0))
+        esper.add_component(new_shape_ent, transform)
+        shape_comp = ShapeComponent.ShapeComponent(new_shape_ent, pivots, self)
+        outline_comp = OutliningComponent.OutliningComponent(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER,
+                                                             self.app.shader_manager.get_shader(
+                                                                 ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER))
+        shape_comp.gl_init()
+        render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.SHAPE_SHADER,
+                                                      self.app.shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_SHADER))
+
+        motion_comp = MotionComponent.MotionComponent()
+
+        esper.add_component(new_shape_ent, shape_comp)
+        esper.add_component(new_shape_ent, render_comp)
+        esper.add_component(new_shape_ent, NameTagComponent.NameTagComponent("shape"))
+        esper.add_component(new_shape_ent, outline_comp)
+        esper.add_component(new_shape_ent, motion_comp)
+
+        self.shape_entities.append(new_shape_ent)
+
+        for pos in shape_comp.cube_position:
+            self.look_up[pos.x][pos.y][pos.z] = 1
+        pass

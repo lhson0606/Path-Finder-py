@@ -35,8 +35,9 @@ def get_new_cubes(shape_ent, new_pivot_pos: glm.ivec3):
 
 def add_cube(shape_entity, position: glm.vec3, pivot_index: int = -1):
     new_cube_entity = esper.create_entity()
+    shape_pos = esper.component_for_entity(shape_entity, TransformComponent.TransformComponent).position
     esper.add_component(new_cube_entity, CubeComponent.CubeComponent(shape_entity, pivot_index))
-    esper.add_component(new_cube_entity, TransformComponent.TransformComponent(position))
+    esper.add_component(new_cube_entity, TransformComponent.TransformComponent(glm.vec3(position) + shape_pos))
     esper.add_component(new_cube_entity, NameTagComponent.NameTagComponent("cube"))
     return new_cube_entity
     pass
@@ -181,6 +182,28 @@ class ShapeComponent:
 
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.ebo)
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, self.get_batch_indices_data(), gl.GL_STATIC_DRAW)
+
+        gl.glBindVertexArray(0)
+        pass
+
+    def update_cube_models(self):
+        gl.glBindVertexArray(self.vao)
+
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model_col_0)
+        data = self.get_batch_transform_data(0)
+        gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, data.nbytes, data)
+
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model_col_1)
+        data = self.get_batch_transform_data(1)
+        gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, data.nbytes, data)
+
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model_col_2)
+        data = self.get_batch_transform_data(2)
+        gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, data.nbytes, data)
+
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_model_col_3)
+        data = self.get_batch_transform_data(3)
+        gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, data.nbytes, data)
 
         gl.glBindVertexArray(0)
         pass
@@ -357,3 +380,15 @@ class ShapeComponent:
         gl.glDeleteBuffers(1, self.vbo_model_col_2)
         gl.glDeleteBuffers(1, self.vbo_model_col_3)
         gl.glDeleteBuffers(1, self.ebo)
+
+    def translate(self, translation: glm.ivec3):
+        for cube in self.cubes:
+            transform = esper.component_for_entity(cube, TransformComponent.TransformComponent)
+            transform.translate(glm.vec3(translation))
+
+        transform_comp = esper.component_for_entity(self.ent_id, TransformComponent.TransformComponent)
+        transform_comp.translate(glm.vec3(translation))
+
+        self.update_cube_models()
+
+        self.map.update_look_up()

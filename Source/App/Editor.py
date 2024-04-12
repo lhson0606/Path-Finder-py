@@ -11,6 +11,9 @@ import Source.ECS.Component.TransformComponent as TransformComponent
 import Source.ECS.Component.TempShapeComponent as TempShapeComponent
 import Source.ECS.Component.RenderComponent as RenderComponent
 import Source.ECS.Component.OutliningComponent as OutliningComponent
+import Source.ECS.Component.MotionComponent as MotionComponent
+import Source.ECS.Processor.PhysicProcessor as PhysicProcessor
+import Source.ECS.Processor.VisualizingProcessor as VisualizingProcessor
 import Source.App.MoveCubeCmd as MoveCubeCmd
 import Source.Manager.ShaderManager as ShaderManager
 import Source.App.AddPivotCmd as AddPivotCmd
@@ -21,12 +24,16 @@ import esper
 
 import glm
 
+shape_inp_int3 = glm.vec3(0.0, 0.0, 0.0)
+shape_inp_int = 0
+
 
 class Mode(enum.Enum):
     NONE = 0
     SELECT_CUBE = 1
     SELECT_SHAPE = 2
     ADDING_PIVOT = 3
+    IS_RUNNING_SIMULATION = 4
 
 
 class Editor:
@@ -71,6 +78,9 @@ class Editor:
             self.history.append(command)
 
     def placing(self, obj):
+        if self.mode == Mode.IS_RUNNING_SIMULATION:
+            return
+
         if imgui.is_any_item_hovered() or imgui.is_any_item_active():
             return
 
@@ -129,6 +139,9 @@ class Editor:
         pass
 
     def handle_pick(self, picked_obj):
+        if self.mode == Mode.IS_RUNNING_SIMULATION:
+            return
+
         if self.mode == Mode.ADDING_PIVOT:
             self.execute(AddPivotCmd.AddPivotCommand(self.cur_shape, self.new_pivot_pos))
             self.mode = Mode.NONE
@@ -178,15 +191,17 @@ class Editor:
         imgui.begin("Editor", False, imgui.WINDOW_NO_RESIZE |
                     imgui.WINDOW_NO_MOVE)
 
+        if self.mode == Mode.IS_RUNNING_SIMULATION:
+            imgui.text("Simulation is running, please wait...")
+            imgui.text("press ESC or \"Pause\" to stop")
+            if imgui.button("Pause"):
+                self.quit_edit()
+            imgui.end()
+            return
+
         imgui.text("Edit")
 
         if imgui.button("Add shape"):
-            pass
-
-        if imgui.button("Edit start point"):
-            pass
-
-        if imgui.button("Edit goal point"):
             pass
 
         if imgui.button("Add passing point"):
@@ -215,8 +230,8 @@ class Editor:
         if imgui.button("Run BFS"):
             pass
 
-        if imgui.button("Movable shapes"):
-            pass
+        if imgui.button("Run in real time"):
+            self.run_simulation()
 
         if imgui.button("Reset shapes position"):
             pass
@@ -273,6 +288,10 @@ class Editor:
         pass
 
     def quit_edit(self):
+        if self.mode == Mode.IS_RUNNING_SIMULATION:
+            esper.get_processor(PhysicProcessor.PhysicProcessor).disable()
+            esper.get_processor(VisualizingProcessor.VisualizingProcessor).disable()
+
         if self.cur_temp_shape != -1:
             t_shape_comp = esper.component_for_entity(self.cur_temp_shape, TempShapeComponent.TempShapeComponent)
             t_shape_comp.clean_up()
@@ -295,6 +314,7 @@ class Editor:
         cube_comp = esper.component_for_entity(self.cur_entity, CubeComponent.CubeComponent)
         shape_ent = cube_comp.shape_entity
         shape_comp = esper.component_for_entity(shape_ent, ShapeComponent.ShapeComponent)
+        motion_comp = esper.component_for_entity(shape_ent, MotionComponent.MotionComponent)
 
         if self.should_update_position:
             imgui.set_next_window_position(self.app.mousePos.x, self.app.mousePos.y)
@@ -312,6 +332,23 @@ class Editor:
             self.cur_shape = shape_ent
             pass
 
+        shape_inp_int3 = glm.ivec3(int(motion_comp.velocity.x), int(motion_comp.velocity.y), int(motion_comp.velocity.z))
+
+        changed, shape_inp_int3 = imgui.input_int3(
+            "Velocity",
+            *shape_inp_int3
+        )
+
+        if changed:
+            motion_comp.set_velocity(glm.vec3(shape_inp_int3))
+
+        changed, motion_comp.distance = imgui.input_int(
+            "Distance",
+            motion_comp.distance,
+            1,
+            0
+        )
+
         if imgui.button("Translate"):
             pass
 
@@ -319,4 +356,12 @@ class Editor:
             pass
 
         imgui.end()
+        pass
+
+    def run_simulation(self):
+        self.quit_edit()
+        self.mode = Mode.IS_RUNNING_SIMULATION
+        esper.get_processor(PhysicProcessor.PhysicProcessor).enable()
+        esper.get_processor(VisualizingProcessor.VisualizingProcessor).enable(
+            VisualizedAStar.VisualizedAStar(self.app.cur_map_context.map, self.app))
         pass

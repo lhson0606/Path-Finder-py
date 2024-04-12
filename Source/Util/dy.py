@@ -49,3 +49,9 @@ def cast_ray(mouse_x: float, mouse_y: float, width: int, height: int, view: glm.
 
 def round_away_from_zero(value):
     return math.ceil(value) if value > 0 else math.floor(value)
+
+def get_safe_direction(v: glm.vec3):
+    if v.x == 0 and v.y == 0 and v.z == 0:
+        return glm.vec3(0, 0, 0)
+
+    return glm.normalize(v)

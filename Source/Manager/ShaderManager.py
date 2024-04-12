@@ -22,6 +22,8 @@ GOAL_POINT_SHADER_VERT_PATH = "Resources/GLSL/goal_point.vert"
 GOAL_POINT_SHADER_FRAG_PATH = "Resources/GLSL/goal_point.frag"
 PATH_POINT_SHADER_VERT_PATH = "Resources/GLSL/path_point.vert"
 PATH_POINT_SHADER_FRAG_PATH = "Resources/GLSL/path_point.frag"
+PASSING_POINT_SHADER_VERT_PATH = "Resources/GLSL/passing_point.vert"
+PASSING_POINT_SHADER_FRAG_PATH = "Resources/GLSL/passing_point.frag"
 
 
 class ShaderType(Enum):
@@ -36,6 +38,7 @@ class ShaderType(Enum):
     START_POINT_SHADER = 8
     GOAL_POINT_SHADER = 9
     PATH_POINT_SHADER = 10
+    PASSING_POINT_SHADER = 11
 
 class ShaderManager:
 
@@ -63,3 +66,4 @@ class ShaderManager:
         self.load_shaders(ShaderType.START_POINT_SHADER, START_POINT_SHADER_VERT_PATH, START_POINT_SHADER_FRAG_PATH)
         self.load_shaders(ShaderType.GOAL_POINT_SHADER, GOAL_POINT_SHADER_VERT_PATH, GOAL_POINT_SHADER_FRAG_PATH)
         self.load_shaders(ShaderType.PATH_POINT_SHADER, PATH_POINT_SHADER_VERT_PATH, PATH_POINT_SHADER_FRAG_PATH)
+        self.load_shaders(ShaderType.PASSING_POINT_SHADER, PASSING_POINT_SHADER_VERT_PATH, PASSING_POINT_SHADER_FRAG_PATH)

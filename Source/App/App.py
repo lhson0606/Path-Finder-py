@@ -26,6 +26,8 @@ from Source.Test.testwindow import show_test_window
 
 import Source.ECS.Processor.RenderProcessor as RenderProcessor
 import Source.ECS.Processor.PickingProcessor as PickingProcessor
+import Source.ECS.Processor.PhysicProcessor as PhysicProcessor
+import Source.ECS.Processor.VisualizingProcessor as VisualizingProcessor
 
 import tkinter as tk
 from tkinter import filedialog
@@ -628,6 +630,12 @@ class App:
         picking_processor = PickingProcessor.PickingProcessor(self)
         esper.add_processor(picking_processor)
         new_map_context.picking_processor = picking_processor
+
+        physic_processor = PhysicProcessor.PhysicProcessor()
+        esper.add_processor(physic_processor)
+
+        visualizing_processor = VisualizingProcessor.VisualizingProcessor()
+        esper.add_processor(visualizing_processor)
 
         # load map data
         if not target_map.is_draft:

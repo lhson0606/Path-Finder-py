@@ -12,6 +12,7 @@ import Source.ECS.Component.OutliningComponent as OutliningComponent
 import Source.ECS.Component.StartPointComponent as StartPointComponent
 import Source.ECS.Component.GoalPointComponent as GoalPointComponent
 import Source.ECS.Component.PathComponent as PathComponent
+import Source.ECS.Component.PassingPointsComponent as PassingPointsComponent
 import Source.Render.Shader as Shader
 from Source.Manager.ShaderManager import ShaderType as ShaderType
 
@@ -49,6 +50,13 @@ class RenderProcessor(esper.Processor):
             match shader_type:
                 case ShaderType.GOAL_POINT_SHADER:
                     self.render_as_goal_point(ent, render_data.shader)
+
+        for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
+            shader_type = render_data.shader_type
+
+            match shader_type:
+                case ShaderType.PASSING_POINT_SHADER:
+                    self.render_as_passing_points(ent, render_data.shader)
 
         for ent, (render_data) in esper.get_component(RenderComponent.RenderComponent):
             shader_type = render_data.shader_type
@@ -249,6 +257,18 @@ class RenderProcessor(esper.Processor):
         shader.set_mat4("view", self.app.cur_map_context.camera.view)
         gl.glBindVertexArray(path_data.vao)
         gl.glDrawElements(gl.GL_TRIANGLES, path_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+        gl.glBindVertexArray(0)
+        shader.stop()
+        pass
+
+    def render_as_passing_points(self, ent, shader):
+        passing_points_data = esper.component_for_entity(ent, PassingPointsComponent.PassingPointsComponent)
+
+        shader.use()
+        shader.set_mat4("projection", self.app.projection)
+        shader.set_mat4("view", self.app.cur_map_context.camera.view)
+        gl.glBindVertexArray(passing_points_data.vao)
+        gl.glDrawElements(gl.GL_TRIANGLES, passing_points_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
         gl.glBindVertexArray(0)
         shader.stop()
         pass
