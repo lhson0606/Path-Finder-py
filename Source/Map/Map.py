@@ -48,7 +48,7 @@ class Map:
         self.goal = glm.ivec2(0, 0)
         self.shape_count = 0
         self.full_path = DEFAULT_MAP_DIR + name
-        self.look_up = np.array([[[0 for _ in range(0, l+1)] for _ in range(0, h+1)] for _ in range(0, w+1)])
+        self.look_up = np.array([[[0 for _ in range(0, l + 1)] for _ in range(0, h + 1)] for _ in range(0, w + 1)])
         self.is_draft = True
         self.goal_ent = -1
         self.start_ent = -1
@@ -80,7 +80,9 @@ class Map:
             self.width = int(lines[0].split(",")[0])
             self.height = int(lines[0].split(",")[1])
 
-            self.look_up = np.array([[[0 for _ in range(0, self.length + 1)] for _ in range(0, self.height + 1)] for _ in range(0, self.width + 1)])
+            self.look_up = np.array(
+                [[[0 for _ in range(0, self.length + 1)] for _ in range(0, self.height + 1)] for _ in
+                 range(0, self.width + 1)])
 
             second_line_data = lines[1].split(",")
 
@@ -135,6 +137,11 @@ class Map:
         transform_comp = TransformComponent.TransformComponent(pos)
         shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.START_POINT_SHADER)
         render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.START_POINT_SHADER, shader)
+        outlining_comp = OutliningComponent.OutliningComponent(ShaderManager.ShaderType.SIMPLE_OUTLINING_SHADER,
+                                                               self.app.shader_manager.get_shader(
+                                                                   ShaderManager.ShaderType.SIMPLE_OUTLINING_SHADER))
+        name_tag_comp = NameTagComponent.NameTagComponent("start")
+
         texture = self.app.texture_manager.get_texture(TextureManager.TextureType.START_CUBE)
         shader.use()
         shader.set_mat4("model", transform_comp.get_world_transform())
@@ -145,6 +152,9 @@ class Map:
         esper.add_component(self.start_ent, render_comp)
         esper.add_component(self.start_ent, NameTagComponent.NameTagComponent("start"))
         esper.add_component(self.start_ent, start_point_component)
+        esper.add_component(self.start_ent, outlining_comp)
+        esper.add_component(self.start_ent, name_tag_comp)
+
         pass
 
     def create_goal_point(self, pos):
@@ -154,6 +164,11 @@ class Map:
         transform_comp = TransformComponent.TransformComponent(pos)
         shader = self.app.shader_manager.get_shader(ShaderManager.ShaderType.GOAL_POINT_SHADER)
         render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.GOAL_POINT_SHADER, shader)
+        outlining_comp = OutliningComponent.OutliningComponent(ShaderManager.ShaderType.SIMPLE_OUTLINING_SHADER,
+                                                               self.app.shader_manager.get_shader(
+                                                                   ShaderManager.ShaderType.SIMPLE_OUTLINING_SHADER))
+        name_tag_comp = NameTagComponent.NameTagComponent("goal")
+
         texture = self.app.texture_manager.get_texture(TextureManager.TextureType.GOAL_CUBE)
         shader.use()
         shader.set_mat4("model", transform_comp.get_world_transform())
@@ -164,6 +179,9 @@ class Map:
         esper.add_component(self.goal_ent, render_comp)
         esper.add_component(self.goal_ent, NameTagComponent.NameTagComponent("goal"))
         esper.add_component(self.goal_ent, goal_point_comp)
+        esper.add_component(self.goal_ent, outlining_comp)
+        esper.add_component(self.goal_ent, name_tag_comp)
+
         pass
 
     def switch_context(self):
@@ -202,21 +220,23 @@ class Map:
         # prevent from going inside the shape
         if cur_pos.x == next_pos.x:
             off_set = glm.ivec2(next_pos.y - cur_pos.y, next_pos.z - cur_pos.z)
-            if self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y, cur_pos.z + off_set.y)) and self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y + off_set.x, cur_pos.z)):
+            if self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y, cur_pos.z + off_set.y)) and self.is_wall(
+                    glm.ivec3(cur_pos.x, cur_pos.y + off_set.x, cur_pos.z)):
                 return False
 
         if cur_pos.y == next_pos.y:
             off_set = glm.ivec2(next_pos.x - cur_pos.x, next_pos.z - cur_pos.z)
-            if self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y, cur_pos.z + off_set.y)) and self.is_wall(glm.ivec3(cur_pos.x + off_set.x, cur_pos.y, cur_pos.z)):
+            if self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y, cur_pos.z + off_set.y)) and self.is_wall(
+                    glm.ivec3(cur_pos.x + off_set.x, cur_pos.y, cur_pos.z)):
                 return False
 
         if cur_pos.z == next_pos.z:
             off_set = glm.ivec2(next_pos.x - cur_pos.x, next_pos.y - cur_pos.y)
-            if self.is_wall(glm.ivec3(cur_pos.x + off_set.x, cur_pos.y, cur_pos.z)) and self.is_wall(glm.ivec3(cur_pos.x, cur_pos.y + off_set.y, cur_pos.z)):
+            if self.is_wall(glm.ivec3(cur_pos.x + off_set.x, cur_pos.y, cur_pos.z)) and self.is_wall(
+                    glm.ivec3(cur_pos.x, cur_pos.y + off_set.y, cur_pos.z)):
                 return False
 
         return True
-
 
     def update_look_up(self):
         self.clear_look_up()
@@ -224,7 +244,11 @@ class Map:
         for ent, (cube_comp) in esper.get_component(CubeComponent.CubeComponent):
             transform = esper.component_for_entity(ent, TransformComponent.TransformComponent)
             look_up_pos = glm.ivec3(transform.position)
-            self.look_up[look_up_pos.x][look_up_pos.y][look_up_pos.z] = 1
+            try:
+                self.look_up[look_up_pos.x][look_up_pos.y][look_up_pos.z] = 1
+            except:
+                dy.log.error("Invalid cube position: " + str(look_up_pos))
+                raise ValueError("Invalid cube position: " + str(look_up_pos))
 
         pass
 
@@ -258,7 +282,9 @@ class Map:
         self.passing_points_ent = esper.create_entity()
         passing_points_comp = PassingPointsComponent.PassingPointsComponent(self)
         passing_points_comp.build_path(passing_point_positions)
-        render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.PASSING_POINT_SHADER, self.app.shader_manager.get_shader(ShaderManager.ShaderType.PASSING_POINT_SHADER))
+        render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.PASSING_POINT_SHADER,
+                                                      self.app.shader_manager.get_shader(
+                                                          ShaderManager.ShaderType.PASSING_POINT_SHADER))
         tag = NameTagComponent.NameTagComponent("passing points")
         esper.add_component(self.passing_points_ent, passing_points_comp)
         esper.add_component(self.passing_points_ent, render_comp)
@@ -275,7 +301,8 @@ class Map:
                                                                  ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER))
         shape_comp.gl_init()
         render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.SHAPE_SHADER,
-                                                      self.app.shader_manager.get_shader(ShaderManager.ShaderType.SHAPE_SHADER))
+                                                      self.app.shader_manager.get_shader(
+                                                          ShaderManager.ShaderType.SHAPE_SHADER))
 
         motion_comp = MotionComponent.MotionComponent()
 

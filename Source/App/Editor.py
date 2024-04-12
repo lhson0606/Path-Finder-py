@@ -55,9 +55,15 @@ class Editor:
         self.current_algorithm = None
 
     def execute(self, command: Command):
-        if command.execute():
-            self.history.append(command)
-        else:
+        try:
+            if command.execute():
+                self.history.append(command)
+                self.app.cur_map_context.map.is_dirty = True
+            else:
+                self.app.pop_up_error("Command failed to execute, please check log for more information.")
+                return
+        except Exception as e:
+            dy.log.error("Command failed to execute: %s", e)
             self.app.pop_up_error("Command failed to execute, please check log for more information.")
             return
 
@@ -69,6 +75,10 @@ class Editor:
             command = self.history.pop()
             command.undo()
             self.future.append(command)
+            self.app.cur_map_context.map.is_dirty = True
+
+        else:
+            dy.log.warning("No command to undo")
 
     def redo(self):
         self.quit_edit()
@@ -76,6 +86,9 @@ class Editor:
             command = self.future.pop()
             command.execute()
             self.history.append(command)
+            self.app.cur_map_context.map.is_dirty = True
+        else:
+            dy.log.warning("No command to redo")
 
     def placing(self, obj):
         if self.mode == Mode.IS_RUNNING_SIMULATION:
@@ -153,35 +166,51 @@ class Editor:
             self.quit_edit()
             return
 
-        cube_comp = esper.component_for_entity(picked_obj.entity, CubeComponent.CubeComponent)
-        self.cur_obj = picked_obj
+        tag_comp = esper.component_for_entity(picked_obj.entity, NameTagComponent.NameTagComponent)
 
-        if self.cur_entity != picked_obj.entity:
-            self.should_update_position = True
+        if tag_comp.name == "start":
+            dy.log.info("Start picked")
+            pass
 
-        if not cube_comp.is_pivot():
-            self.quit_edit()
-            self.cur_entity = picked_obj.entity
-            self.mode = Mode.SELECT_SHAPE
-            # enable shape outlining
-            outline_comp = esper.component_for_entity(cube_comp.shape_entity, OutliningComponent.OutliningComponent)
-            outline_comp.set_draw_outline(True)
-            self.cur_shape = cube_comp.shape_entity
-        else:
-            if self.cur_entity == picked_obj.entity:
+        if tag_comp.name == "goal":
+            dy.log.info("Goal picked")
+            pass
+
+        if tag_comp.name == "passing point":
+            dy.log.info("Passing point picked")
+            pass
+
+        if tag_comp.name == "cube":
+
+            cube_comp = esper.component_for_entity(picked_obj.entity, CubeComponent.CubeComponent)
+            self.cur_obj = picked_obj
+
+            if self.cur_entity != picked_obj.entity:
+                self.should_update_position = True
+
+            if not cube_comp.is_pivot():
                 self.quit_edit()
                 self.cur_entity = picked_obj.entity
                 self.mode = Mode.SELECT_SHAPE
-                self.should_update_position = True
                 # enable shape outlining
                 outline_comp = esper.component_for_entity(cube_comp.shape_entity, OutliningComponent.OutliningComponent)
                 outline_comp.set_draw_outline(True)
                 self.cur_shape = cube_comp.shape_entity
             else:
-                self.cur_entity = picked_obj.entity
-                self.mode = Mode.SELECT_CUBE
-                self.prev_widgets_basic_vec3a = glm.vec3(
-                    esper.component_for_entity(self.cur_entity, TransformComponent.TransformComponent).position)
+                if self.cur_entity == picked_obj.entity:
+                    self.quit_edit()
+                    self.cur_entity = picked_obj.entity
+                    self.mode = Mode.SELECT_SHAPE
+                    self.should_update_position = True
+                    # enable shape outlining
+                    outline_comp = esper.component_for_entity(cube_comp.shape_entity, OutliningComponent.OutliningComponent)
+                    outline_comp.set_draw_outline(True)
+                    self.cur_shape = cube_comp.shape_entity
+                else:
+                    self.cur_entity = picked_obj.entity
+                    self.mode = Mode.SELECT_CUBE
+                    self.prev_widgets_basic_vec3a = glm.vec3(
+                        esper.component_for_entity(self.cur_entity, TransformComponent.TransformComponent).position)
 
         pass
 
@@ -207,6 +236,14 @@ class Editor:
         if imgui.button("Add passing point"):
             pass
 
+        if self.app.cur_map_context.map.start_ent == -1:
+            if imgui.button("Add start"):
+                pass
+
+        if self.app.cur_map_context.map.goal_ent == -1:
+            if imgui.button("Add goal"):
+                pass
+
         imgui.text("Visualize")
 
         if imgui.button("Clear path"):
@@ -221,7 +258,10 @@ class Editor:
                 self.current_algorithm = None
 
             self.current_algorithm = VisualizedAStar.VisualizedAStar(self.app.cur_map_context.map, self.app)
-            self.current_algorithm.solve_and_visualize()
+            try:
+                self.current_algorithm.solve_and_visualize()
+            except Exception as e:
+                self.handle_when_no_path_found()
             pass
 
         if imgui.button("Run greedy"):
@@ -363,5 +403,10 @@ class Editor:
         self.mode = Mode.IS_RUNNING_SIMULATION
         esper.get_processor(PhysicProcessor.PhysicProcessor).enable()
         esper.get_processor(VisualizingProcessor.VisualizingProcessor).enable(
-            VisualizedAStar.VisualizedAStar(self.app.cur_map_context.map, self.app))
+            VisualizedAStar.VisualizedAStar(self.app.cur_map_context.map, self.app), self)
+        pass
+
+    def handle_when_no_path_found(self):
+        self.quit_edit()
+        self.app.pop_up_error("No path found")
         pass

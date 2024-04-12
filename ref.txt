@@ -1,17 +1,10 @@
-
-raycast:
-
-	
 lib:
-	PyGLM
-	PyOpenGL
-	imgui
-	numpy
-	glfw
-	esper
-	colorLog
+	PyGLM (vec3, matrix, ...)
+	PyOpenGL (graphic)
+	imgui (debug GUI)
+	numpy (array)
+	glfw (manage window)
+	esper (light weight ECS framework)
+	colorLog (colorful logging)
 	tk (file dialog)
 	pillow (image texture loader)
-	
-	
-each map has its own shader_manager?

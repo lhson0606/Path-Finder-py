@@ -70,6 +70,7 @@ class GoalPointComponent:
         self.vao = int(gl.glGenVertexArrays(1))
         self.vbo_pos = int(gl.glGenBuffers(1))
         self.vbo_tex_coords = int(gl.glGenBuffers(1))
+        self.vbo_normal = int(gl.glGenBuffers(1))
         self.ebo = int(gl.glGenBuffers(1))
         self.vertex_count = 36
         self.texture = texture
@@ -86,6 +87,11 @@ class GoalPointComponent:
         gl.glVertexAttribPointer(1, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, ctypes.c_void_p(0))
         gl.glEnableVertexAttribArray(1)
 
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo_normal)
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, NORMALS, gl.GL_STATIC_DRAW)
+        gl.glVertexAttribPointer(2, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, ctypes.c_void_p(0))
+        gl.glEnableVertexAttribArray(2)
+
         gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.ebo)
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, INDICES, gl.GL_STATIC_DRAW)
 
@@ -95,6 +101,7 @@ class GoalPointComponent:
         gl.glDeleteVertexArrays(1, [self.vao])
         gl.glDeleteBuffers(1, [self.vbo_pos])
         gl.glDeleteBuffers(1, [self.vbo_tex_coords])
+        gl.glDeleteBuffers(1, [self.vbo_normal])
         gl.glDeleteBuffers(1, [self.ebo])
         pass
 

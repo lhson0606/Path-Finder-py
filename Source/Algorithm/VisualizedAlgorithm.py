@@ -75,8 +75,7 @@ class VisualizedAlgorithm(ABC):
             positions = self.find_path(self.map.start, self.map.goal)
 
         if positions is None:
-            self.app.pop_up_error("No path found")
-            return
+            raise Exception("No path found")
 
         path_comp.build_path(positions)
 
@@ -94,6 +93,9 @@ class VisualizedAlgorithm(ABC):
                     self.__resolve_min(k, S)
 
         self.__resolve_min(n - 1, tuple(range(1, n - 1)))
+
+        if self._g[(n - 1, tuple(range(1, n - 1)))] == float("inf"):
+            return None
 
         return self.__reconstruct_path()
         pass

@@ -11,6 +11,7 @@ import Source.ECS.Component.SkyBoxComponent as SkyBoxComponent
 import Source.ECS.Component.OutliningComponent as OutliningComponent
 import Source.ECS.Component.StartPointComponent as StartPointComponent
 import Source.ECS.Component.GoalPointComponent as GoalPointComponent
+import Source.ECS.Component.TransformComponent as TransformComponent
 import Source.ECS.Component.PathComponent as PathComponent
 import Source.ECS.Component.PassingPointsComponent as PassingPointsComponent
 import Source.Render.Shader as Shader
@@ -215,6 +216,13 @@ class RenderProcessor(esper.Processor):
         pass
 
     def render_as_start_point(self, ent, shader):
+        # check for outlining
+        outline_comp = esper.component_for_entity(ent, OutliningComponent.OutliningComponent)
+
+        if outline_comp.will_draw_outline():
+            gl.glStencilFunc(gl.GL_ALWAYS, 1, 0xFF)
+            gl.glStencilMask(0xFF)
+
         start_point_data = esper.component_for_entity(ent, StartPointComponent.StartPointComponent)
         texture = start_point_data.texture
 
@@ -229,9 +237,41 @@ class RenderProcessor(esper.Processor):
         gl.glDrawElements(gl.GL_TRIANGLES, start_point_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
         gl.glBindVertexArray(0)
         shader.stop()
+
+        # draw outline if necessary
+        if not outline_comp.will_draw_outline():
+            return
+
+        outline_shader = outline_comp.shader
+        gl.glStencilFunc(gl.GL_NOTEQUAL, 1, 0xFF)
+        gl.glStencilMask(0x00)
+        # gl.glDisable(gl.GL_DEPTH_TEST)
+
+        outline_shader.use()
+
+        outline_shader.set_mat4("projection", self.app.projection)
+        outline_shader.set_mat4("view", self.app.cur_map_context.camera.view)
+        outline_shader.set_mat4("model", esper.component_for_entity(ent, TransformComponent.TransformComponent).get_world_transform())
+
+        gl.glBindVertexArray(start_point_data.vao)
+        gl.glDrawElements(gl.GL_TRIANGLES, start_point_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+        gl.glBindVertexArray(0)
+        outline_shader.stop()
+
+        # reset state
+        gl.glStencilMask(0xFF)
+        gl.glStencilFunc(gl.GL_ALWAYS, 0, 0xFF)
+        # gl.glEnable(gl.GL_DEPTH_TEST)
         pass
 
     def render_as_goal_point(self, ent, shader):
+        # check for outlining
+        outline_comp = esper.component_for_entity(ent, OutliningComponent.OutliningComponent)
+
+        if outline_comp.will_draw_outline():
+            gl.glStencilFunc(gl.GL_ALWAYS, 1, 0xFF)
+            gl.glStencilMask(0xFF)
+
         goal_point_data = esper.component_for_entity(ent, GoalPointComponent.GoalPointComponent)
         texture = goal_point_data.texture
 
@@ -246,6 +286,32 @@ class RenderProcessor(esper.Processor):
         gl.glDrawElements(gl.GL_TRIANGLES, goal_point_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
         gl.glBindVertexArray(0)
         shader.stop()
+
+        # draw outline if necessary
+        if not outline_comp.will_draw_outline():
+            return
+
+        outline_shader = outline_comp.shader
+        gl.glStencilFunc(gl.GL_NOTEQUAL, 1, 0xFF)
+        gl.glStencilMask(0x00)
+        # gl.glDisable(gl.GL_DEPTH_TEST)
+
+        outline_shader.use()
+
+        outline_shader.set_mat4("projection", self.app.projection)
+        outline_shader.set_mat4("view", self.app.cur_map_context.camera.view)
+        outline_shader.set_mat4("model", esper.component_for_entity(ent,
+                                                                    TransformComponent.TransformComponent).get_world_transform())
+
+        gl.glBindVertexArray(goal_point_data.vao)
+        gl.glDrawElements(gl.GL_TRIANGLES, goal_point_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+        gl.glBindVertexArray(0)
+        outline_shader.stop()
+
+        # reset state
+        gl.glStencilMask(0xFF)
+        gl.glStencilFunc(gl.GL_ALWAYS, 0, 0xFF)
+        # gl.glEnable(gl.GL_DEPTH_TEST)
 
         pass
 
@@ -271,5 +337,6 @@ class RenderProcessor(esper.Processor):
         gl.glDrawElements(gl.GL_TRIANGLES, passing_points_data.vertex_count, gl.GL_UNSIGNED_INT, ctypes.c_void_p(0))
         gl.glBindVertexArray(0)
         shader.stop()
+
         pass
 

@@ -566,7 +566,9 @@ class App:
                         for (name) in esper.list_worlds():
                             if name == "default":
                                 continue
-                            with imgui.begin_tab_item(name) as item:
+                            iter_map_context = self.map_contexts[name]
+                            is_dirty = iter_map_context.map.is_dirty
+                            with imgui.begin_tab_item(name, None, imgui.TAB_ITEM_UNSAVED_DOCUMENT if is_dirty else 0) as item:
                                 if item.selected and self.cur_world_name != name:
                                     self.load_map(name)
                                     pass

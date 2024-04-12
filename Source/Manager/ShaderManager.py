@@ -24,6 +24,10 @@ PATH_POINT_SHADER_VERT_PATH = "Resources/GLSL/path_point.vert"
 PATH_POINT_SHADER_FRAG_PATH = "Resources/GLSL/path_point.frag"
 PASSING_POINT_SHADER_VERT_PATH = "Resources/GLSL/passing_point.vert"
 PASSING_POINT_SHADER_FRAG_PATH = "Resources/GLSL/passing_point.frag"
+SIMPLE_CUBE_PICKING_DATA_SHADER_VERT_PATH = "Resources/GLSL/simple_cube_picking_data.vert"
+SIMPLE_CUBE_PICKING_DATA_SHADER_FRAG_PATH = "Resources/GLSL/simple_cube_picking_data.frag"
+SIMPLE_OUTLINING_SHADER_VERT_PATH = "Resources/GLSL/simple_outlining.vert"
+SIMPLE_OUTLINING_SHADER_FRAG_PATH = "Resources/GLSL/simple_outlining.frag"
 
 
 class ShaderType(Enum):
@@ -39,6 +43,8 @@ class ShaderType(Enum):
     GOAL_POINT_SHADER = 9
     PATH_POINT_SHADER = 10
     PASSING_POINT_SHADER = 11
+    SIMPLE_CUBE_PICKING_DATA_SHADER = 12
+    SIMPLE_OUTLINING_SHADER = 13
 
 class ShaderManager:
 
@@ -67,3 +73,5 @@ class ShaderManager:
         self.load_shaders(ShaderType.GOAL_POINT_SHADER, GOAL_POINT_SHADER_VERT_PATH, GOAL_POINT_SHADER_FRAG_PATH)
         self.load_shaders(ShaderType.PATH_POINT_SHADER, PATH_POINT_SHADER_VERT_PATH, PATH_POINT_SHADER_FRAG_PATH)
         self.load_shaders(ShaderType.PASSING_POINT_SHADER, PASSING_POINT_SHADER_VERT_PATH, PASSING_POINT_SHADER_FRAG_PATH)
+        self.load_shaders(ShaderType.SIMPLE_CUBE_PICKING_DATA_SHADER, SIMPLE_CUBE_PICKING_DATA_SHADER_VERT_PATH, SIMPLE_CUBE_PICKING_DATA_SHADER_FRAG_PATH)
+        self.load_shaders(ShaderType.SIMPLE_OUTLINING_SHADER, SIMPLE_OUTLINING_SHADER_VERT_PATH, SIMPLE_OUTLINING_SHADER_FRAG_PATH)
