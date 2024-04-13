@@ -120,7 +120,7 @@ class PathComponent:
 
     def clean_up(self):
         for ent in self.path_entities:
-            esper.delete_entity(ent)
+            esper.delete_entity(ent, True)
 
         gl.glDeleteVertexArrays(1, [self.vao])
         gl.glDeleteBuffers(1, [self.vbo_pos])

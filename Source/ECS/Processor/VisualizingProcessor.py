@@ -27,6 +27,7 @@ class VisualizingProcessor(esper.Processor):
         if not self._is_enabled:
             return
 
+        # self._algorithm.solve_and_visualize()
         try:
             self._algorithm.solve_and_visualize()
         except Exception as e:

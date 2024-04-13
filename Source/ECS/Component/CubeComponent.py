@@ -67,10 +67,11 @@ INDICES = np.array([
 
 
 class CubeComponent:
-    def __init__(self, shape_entity, pivot_index: int = -1):
+    def __init__(self, shape_entity, origin_position: glm.ivec3, pivot_index: int = -1):
         self.is_selected: bool = False
         self.shape_entity = shape_entity
         self.pivot_index = pivot_index
+        self.origin_position = origin_position
 
     def is_pivot(self):
         return self.pivot_index != -1

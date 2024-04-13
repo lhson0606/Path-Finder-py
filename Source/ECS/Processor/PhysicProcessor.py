@@ -27,26 +27,39 @@ class PhysicProcessor(esper.Processor):
         if not self._is_enabled:
             return
 
-        self._accumulated_time = self._accumulated_time + dt
-
-        if self._accumulated_time < 1.0:
-            return
-
-        self._accumulated_time = 0
+        # self._accumulated_time = self._accumulated_time + dt
+        #
+        # if self._accumulated_time < 1.0:
+        #     return
+        #
+        # self._accumulated_time = 0
 
         for ent, motion_comp in esper.get_component(MotionComponent.MotionComponent):
             name = esper.component_for_entity(ent, NameTagComponent.NameTagComponent).name
 
             if name == "shape":
+
+                motion_dir = dy.get_safe_direction(motion_comp.velocity)
+
+                if motion_dir == glm.vec3(0, 0, 0):
+                    continue
+
                 shape_comp = esper.component_for_entity(ent, ShapeComponent.ShapeComponent)
                 shape_transform = esper.component_for_entity(ent, TransformComponent.TransformComponent)
                 moved_distance = glm.distance(motion_comp.start_position, shape_transform.position)
+                temp = motion_comp.velocity*dt
+
+                goal = motion_dir*motion_comp.distance + motion_comp.start_position
 
                 if moved_distance >= motion_comp.distance:
+                    # prevent overshoot
+                    if glm.distance(shape_transform.position + temp, motion_comp.start_position) >= glm.distance(goal,
+                                                                                                                 motion_comp.start_position):
+                        temp = goal - shape_transform.position
                     motion_comp.velocity = -motion_comp.velocity
-                    motion_comp.start_position = shape_transform.position
-                    continue
+                    motion_comp.start_position = goal
 
-                shape_comp.translate(glm.ivec3(int(motion_comp.velocity.x), int(motion_comp.velocity.y), int(motion_comp.velocity.z)))
+                shape_comp.translate(temp)
+
 
         pass

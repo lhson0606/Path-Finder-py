@@ -317,3 +317,27 @@ class Map:
         for pos in shape_comp.cube_position:
             self.look_up[pos.x][pos.y][pos.z] = 1
         pass
+
+    def clean_up(self):
+        for ent in self.shape_entities:
+            shape_comp = esper.component_for_entity(ent, ShapeComponent.ShapeComponent)
+            shape_comp.clean_up()
+            esper.delete_entity(ent, True)
+
+        if self.start_ent != -1:
+            esper.delete_entity(self.start_ent, True)
+
+        if self.goal_ent != -1:
+            esper.delete_entity(self.goal_ent, True)
+
+        if self.passing_points_ent != -1:
+            passing_points_comp = esper.component_for_entity(self.passing_points_ent, PassingPointsComponent.PassingPointsComponent)
+            passing_points_comp.clean_up()
+            esper.delete_entity(self.passing_points_ent, True)
+        pass
+
+    def reset_shapes_position(self):
+        for ent in self.shape_entities:
+            shape_comp = esper.component_for_entity(ent, ShapeComponent.ShapeComponent)
+            shape_comp.reset_shape_position()
+        pass

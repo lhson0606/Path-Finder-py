@@ -7,4 +7,5 @@ class MapComponent:
         self.map = Map.Map(path)
 
     def clean_up(self):
+        self.map.clean_up()
         pass

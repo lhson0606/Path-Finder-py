@@ -28,3 +28,9 @@ class MapContext:
         self.update_view()
         self.update_projection(proj)
         self.map.switch_context()
+
+    def clean_up(self):
+        # if we delete the world, we will not need to call this function
+        self.map.clean_up()
+        self.editor.clean_up()
+        pass

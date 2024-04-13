@@ -36,7 +36,8 @@ def get_new_cubes(shape_ent, new_pivot_pos: glm.ivec3):
 def add_cube(shape_entity, position: glm.vec3, pivot_index: int = -1):
     new_cube_entity = esper.create_entity()
     shape_pos = esper.component_for_entity(shape_entity, TransformComponent.TransformComponent).position
-    esper.add_component(new_cube_entity, CubeComponent.CubeComponent(shape_entity, pivot_index))
+    pos = glm.ivec3(position)
+    esper.add_component(new_cube_entity, CubeComponent.CubeComponent(shape_entity, pos,pivot_index))
     esper.add_component(new_cube_entity, TransformComponent.TransformComponent(glm.vec3(position) + shape_pos))
     esper.add_component(new_cube_entity, NameTagComponent.NameTagComponent("cube"))
     return new_cube_entity
@@ -96,6 +97,7 @@ class ShapeComponent:
         self.ebo = -1
         self.vertex_count = 0
         self.map = m
+        self.accumulated_translation = glm.vec3(0, 0, 0)
 
     def gl_init(self):
         self.vao = int(gl.glGenVertexArrays(1))
@@ -343,7 +345,7 @@ class ShapeComponent:
 
         # create new entity for pivot
         pivot_entity = esper.create_entity()
-        esper.add_component(pivot_entity, CubeComponent.CubeComponent(self.ent_id, len(self.pivots) - 1))
+        esper.add_component(pivot_entity, CubeComponent.CubeComponent(self.ent_id, glm.ivec3(position), len(self.pivots) - 1))
         esper.add_component(pivot_entity, TransformComponent.TransformComponent(glm.vec3(position)))
         esper.add_component(pivot_entity, NameTagComponent.NameTagComponent("cube"))
 
@@ -370,6 +372,21 @@ class ShapeComponent:
         self.map.update_look_up()
         pass
 
+    def reset_shape_position(self):
+        for cube in self.cubes:
+            cube_comp = esper.component_for_entity(cube, CubeComponent.CubeComponent)
+            transform = esper.component_for_entity(cube, TransformComponent.TransformComponent)
+            origin_pos = cube_comp.origin_position
+            transform.set_position(glm.vec3(origin_pos))
+
+        transform_comp = esper.component_for_entity(self.ent_id, TransformComponent.TransformComponent)
+        transform_comp.set_position(glm.vec3(0, 0, 0))
+
+        self.update_cube_models()
+
+        self.map.update_look_up()
+        pass
+
     def clean_up(self):
         gl.glDeleteVertexArrays(1, self.vao)
         gl.glDeleteBuffers(1, self.vbo_pos)
@@ -381,14 +398,26 @@ class ShapeComponent:
         gl.glDeleteBuffers(1, self.vbo_model_col_3)
         gl.glDeleteBuffers(1, self.ebo)
 
-    def translate(self, translation: glm.ivec3):
+        for cube in self.cubes:
+            esper.delete_entity(cube, True)
+
+    def translate(self, translation: glm.vec3):
+        self.accumulated_translation += translation
+
+        if abs(self.accumulated_translation.x) < 1 and abs(self.accumulated_translation.y) < 1 and abs(self.accumulated_translation.z) < 1:
+            return
+
+        temp = glm.ivec3(self.accumulated_translation)
+
         for cube in self.cubes:
             transform = esper.component_for_entity(cube, TransformComponent.TransformComponent)
-            transform.translate(glm.vec3(translation))
+            transform.translate(glm.vec3(temp))
 
         transform_comp = esper.component_for_entity(self.ent_id, TransformComponent.TransformComponent)
-        transform_comp.translate(glm.vec3(translation))
+        transform_comp.translate(glm.vec3(temp))
 
         self.update_cube_models()
 
         self.map.update_look_up()
+
+        self.accumulated_translation = glm.vec3(0, 0, 0)

@@ -274,6 +274,7 @@ class Editor:
             self.run_simulation()
 
         if imgui.button("Reset shapes position"):
+            self.app.cur_map_context.map.reset_shapes_position()
             pass
 
         imgui.end()
@@ -331,6 +332,7 @@ class Editor:
         if self.mode == Mode.IS_RUNNING_SIMULATION:
             esper.get_processor(PhysicProcessor.PhysicProcessor).disable()
             esper.get_processor(VisualizingProcessor.VisualizingProcessor).disable()
+            self.app.cur_map_context.map.reset_shapes_position()
 
         if self.cur_temp_shape != -1:
             t_shape_comp = esper.component_for_entity(self.cur_temp_shape, TempShapeComponent.TempShapeComponent)
@@ -409,4 +411,10 @@ class Editor:
     def handle_when_no_path_found(self):
         self.quit_edit()
         self.app.pop_up_error("No path found")
+        pass
+
+    def clean_up(self):
+        if self.current_algorithm is not None:
+            self.current_algorithm.clean_up()
+            self.current_algorithm = None
         pass

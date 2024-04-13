@@ -68,6 +68,8 @@ class VisualizedAlgorithm(ABC):
         return adj_matrix
 
     def solve_and_visualize(self):
+        self.adjacency_matrix = self.build_adjacency_matrix()
+
         path_comp = esper.component_for_entity(self.path_ent, PathComponent.PathComponent)
         if len(self.map.passing_point_positions) > 0:
             positions = self.solve_TSP(self.map.goal, len(self.vertices))
@@ -121,15 +123,25 @@ class VisualizedAlgorithm(ABC):
         result = []
 
         for i in range(0, len(order) - 1):
-            result.extend(self.find_path(
+            path_result = self.find_path(
                 self.vertices[order[i]],
                 self.vertices[order[i + 1]]
-            ))
+            )
 
-        result.extend(self.find_path(
+            if path_result is None:
+                return None
+
+            result.extend(path_result)
+
+        path_result = self.find_path(
             self.vertices[order[len(order) - 1]],
             self.vertices[-1]
-        ))
+        )
+
+        if path_result is None:
+            return None
+
+        result.extend(path_result)
 
         return unique_list(result)
         pass
@@ -151,4 +163,5 @@ class VisualizedAlgorithm(ABC):
     def clean_up(self):
         path_comp = esper.component_for_entity(self.path_ent, PathComponent.PathComponent)
         path_comp.clean_up()
+        esper.delete_entity(self.path_ent, True)
         pass
