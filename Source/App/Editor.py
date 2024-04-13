@@ -18,6 +18,8 @@ import Source.App.MoveCubeCmd as MoveCubeCmd
 import Source.Manager.ShaderManager as ShaderManager
 import Source.App.AddPivotCmd as AddPivotCmd
 import Source.Algorithm.VisualizedAStar as VisualizedAStar
+import Source.Algorithm.VisualizedGreedy as VisualizedGreedy
+import Source.Algorithm.VisualizedDijkstra as VisualizedDijkstra
 import imgui
 
 import esper
@@ -53,6 +55,9 @@ class Editor:
         self.cur_temp_shape = -1
         self.new_pivot_pos = glm.ivec3(0)
         self.current_algorithm = None
+        self.last_algorithm_runtime = 0
+        self.last_simulation_runtime = 0
+        self.last_path_length = 0
 
     def execute(self, command: Command):
         try:
@@ -253,21 +258,15 @@ class Editor:
             pass
 
         if imgui.button("Run A Star"):
-            if self.current_algorithm is not None:
-                self.current_algorithm.clean_up()
-                self.current_algorithm = None
-
-            self.current_algorithm = VisualizedAStar.VisualizedAStar(self.app.cur_map_context.map, self.app)
-            try:
-                self.current_algorithm.solve_and_visualize()
-            except Exception as e:
-                self.handle_when_no_path_found()
+            self.start_algorithm(VisualizedAStar.VisualizedAStar(self.app.cur_map_context.map, self.app))
             pass
 
         if imgui.button("Run greedy"):
+            self.start_algorithm(VisualizedGreedy.VisualizedGreedy(self.app.cur_map_context.map, self.app))
             pass
 
-        if imgui.button("Run BFS"):
+        if imgui.button("Run Dijkstra"):
+            self.start_algorithm(VisualizedDijkstra.VisualizedDijkstra(self.app.cur_map_context.map, self.app))
             pass
 
         if imgui.button("Run in real time"):
@@ -276,6 +275,11 @@ class Editor:
         if imgui.button("Reset shapes position"):
             self.app.cur_map_context.map.reset_shapes_position()
             pass
+
+        imgui.text("Last run")
+        imgui.text("Algorithm runtime: %s" % self.last_algorithm_runtime)
+        imgui.text("Path length: %s" % self.last_path_length)
+        imgui.text("Simulation runtime: %s" % self.last_simulation_runtime)
 
         imgui.end()
 
@@ -333,6 +337,7 @@ class Editor:
             esper.get_processor(PhysicProcessor.PhysicProcessor).disable()
             esper.get_processor(VisualizingProcessor.VisualizingProcessor).disable()
             self.app.cur_map_context.map.reset_shapes_position()
+            self.last_simulation_runtime = esper.get_processor(VisualizingProcessor.VisualizingProcessor).get_elapsed_time()
 
         if self.cur_temp_shape != -1:
             t_shape_comp = esper.component_for_entity(self.cur_temp_shape, TempShapeComponent.TempShapeComponent)
@@ -417,4 +422,19 @@ class Editor:
         if self.current_algorithm is not None:
             self.current_algorithm.clean_up()
             self.current_algorithm = None
+        pass
+
+    def start_algorithm(self, algo):
+        if self.current_algorithm is not None:
+            self.current_algorithm.clean_up()
+            self.current_algorithm = None
+
+        self.current_algorithm = algo
+        try:
+            self.current_algorithm.solve_and_visualize()
+            self.last_algorithm_runtime = self.current_algorithm.time_elapsed
+            self.last_path_length = self.current_algorithm.path_length
+        except Exception as e:
+            dy.log.warning("Run error: %s", e)
+            self.handle_when_no_path_found()
         pass

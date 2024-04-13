@@ -99,6 +99,12 @@ class ShapeComponent:
         self.map = m
         self.accumulated_translation = glm.vec3(0, 0, 0)
 
+    def create(self):
+        self.gl_init()
+        self.generate_cubes()
+        self.update_data()
+        self.map.update_look_up()
+
     def gl_init(self):
         self.vao = int(gl.glGenVertexArrays(1))
         self.vbo_pos = int(gl.glGenBuffers(1))
@@ -109,9 +115,6 @@ class ShapeComponent:
         self.vbo_model_col_2 = int(gl.glGenBuffers(1))
         self.vbo_model_col_3 = int(gl.glGenBuffers(1))
         self.ebo = int(gl.glGenBuffers(1))
-
-        self.generate_cubes()
-        self.update_data()
 
     def recreate_gl(self):
         self.vao = int(gl.glGenVertexArrays(1))

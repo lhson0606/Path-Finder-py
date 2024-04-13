@@ -10,12 +10,14 @@ class VisualizingProcessor(esper.Processor):
         self._algorithm = None
         self._is_enabled = False
         self._editor = None
+        self._elapsed_time = 0
         pass
 
     def enable(self, alg: VisualizedAlgorithm, editor: Editor.Editor):
         self._is_enabled = True
         self._algorithm = alg
         self._editor = editor
+        self._elapsed_time = 0
         pass
 
     def disable(self):
@@ -30,7 +32,12 @@ class VisualizingProcessor(esper.Processor):
         # self._algorithm.solve_and_visualize()
         try:
             self._algorithm.solve_and_visualize()
+            self._elapsed_time += self._algorithm.time_elapsed
         except Exception as e:
             self._editor.handle_when_no_path_found()
 
+        pass
+
+    def get_elapsed_time(self):
+        return self._elapsed_time
         pass

@@ -9,6 +9,7 @@ import Source.ECS.Component.RenderComponent as RenderComponent
 from itertools import chain, combinations
 import glm
 import Source.Util.dy as dy
+import time
 
 def unique_list(input_list):
     return list(dict.fromkeys(input_list))
@@ -49,7 +50,9 @@ class VisualizedAlgorithm(ABC):
         for x in self.map.passing_point_positions:
             self.vertices.append(x)
         self.vertices.append(self.map.goal)
-        self.adjacency_matrix = self.build_adjacency_matrix()
+        self.adjacency_matrix = None
+        self.time_elapsed = 0
+        self.path_length = 0
 
     @abstractmethod
     def find_path(self, start: glm.ivec3, goal: glm.ivec3):
@@ -68,13 +71,26 @@ class VisualizedAlgorithm(ABC):
         return adj_matrix
 
     def solve_and_visualize(self):
+
         self.adjacency_matrix = self.build_adjacency_matrix()
 
         path_comp = esper.component_for_entity(self.path_ent, PathComponent.PathComponent)
+
+        self.path_length = 0
+        start_time = time.time()
+
+        self._g = {}
+        self._p = {}
+
         if len(self.map.passing_point_positions) > 0:
             positions = self.solve_TSP(self.map.goal, len(self.vertices))
         else:
             positions = self.find_path(self.map.start, self.map.goal)
+            self.path_length = self.get_cost(self.map.start, self.map.goal)
+
+        end_time = time.time()
+
+        self.time_elapsed = end_time - start_time
 
         if positions is None:
             raise Exception("No path found")
@@ -119,6 +135,10 @@ class VisualizedAlgorithm(ABC):
         order.append(0)
 
         order.reverse()
+
+        # calculate the path length
+        for i in range(0, len(order) - 1):
+            self.path_length += self.adjacency_matrix[order[i]][order[i + 1]]
 
         result = []
 

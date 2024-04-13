@@ -299,7 +299,7 @@ class Map:
         outline_comp = OutliningComponent.OutliningComponent(ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER,
                                                              self.app.shader_manager.get_shader(
                                                                  ShaderManager.ShaderType.SHAPE_OUTLINING_SHADER))
-        shape_comp.gl_init()
+        shape_comp.create()
         render_comp = RenderComponent.RenderComponent(ShaderManager.ShaderType.SHAPE_SHADER,
                                                       self.app.shader_manager.get_shader(
                                                           ShaderManager.ShaderType.SHAPE_SHADER))

@@ -505,7 +505,8 @@ class App:
 
         self.draw_modal()
 
-        self.cur_map_context.editor.on_imgui_render()
+        if not self.cur_world_name == "default":
+            self.cur_map_context.editor.on_imgui_render()
 
     def draw_modal(self):
         if imgui.begin_popup_modal(
@@ -699,5 +700,6 @@ class App:
             self.map_contexts.pop(cur_world)
             self.opened_map_count -= 1
             self.cur_map_context = self.map_contexts[next_world]
+            self.cur_world_name = next_world
 
         pass
