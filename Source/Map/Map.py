@@ -48,7 +48,7 @@ class Map:
         self.goal = glm.ivec2(0, 0)
         self.shape_count = 0
         self.full_path = DEFAULT_MAP_DIR + name
-        self.look_up = np.array([[[0 for _ in range(0, l + 1)] for _ in range(0, h + 1)] for _ in range(0, w + 1)])
+        self.look_up = np.array([[[0 for _ in range(0, l)] for _ in range(1, h + 1)] for _ in range(1, w + 1)])
         self.is_draft = True
         self.goal_ent = -1
         self.start_ent = -1
@@ -75,39 +75,14 @@ class Map:
                 lines[i] = lines[i].replace("\r", "")
                 lines[i] = lines[i].replace(" ", "")
 
-            if lines[0].split(",").__len__() != 2:
-                raise ValueError("Not implemented map format: " + lines[0])
-            self.width = int(lines[0].split(",")[0])
-            self.height = int(lines[0].split(",")[1])
-
-            self.look_up = np.array(
-                [[[0 for _ in range(0, self.length + 1)] for _ in range(0, self.height + 1)] for _ in
-                 range(0, self.width + 1)])
-
-            second_line_data = lines[1].split(",")
-
-            self.create_start_point(glm.ivec3(int(second_line_data[0]), int(second_line_data[1]), 0))
-            self.create_goal_point(glm.ivec3(int(second_line_data[2]), int(second_line_data[3]), 0))
-
-            # check for passing points
-            if len(second_line_data) > 4:
-                for i in range(4, len(second_line_data), 2):
-                    pos = glm.ivec3(int(second_line_data[i]), int(second_line_data[i + 1]), 0)
-                    self.passing_point_positions.append(pos)
-                self.create_passing_points(self.passing_point_positions)
-
-            shape_count = int(lines[2].split(",")[0])
-
-            for i in range(0, shape_count):
-                line = lines[i + 3].strip()
-                shape_data = line.split(",")
-                if len(shape_data) == 0 or len(shape_data) % 2 != 0:
-                    raise ValueError("Invalid shape data: " + line)
-                pivots = []
-                for j in range(0, len(shape_data), 2):
-                    pivots.append(glm.ivec3(int(shape_data[j]), int(shape_data[j + 1]), 0))
-
-                self.create_shape(pivots)
+            if lines[0].split(",").__len__() == 2:
+                self.load_as_2d_map(lines)
+            else:
+                if lines[0].split(",").__len__() == 3:
+                    self.load_as_3d_map(lines)
+                else:
+                    raise ValueError("Invalid map file: " + str(self.full_path))
+            
 
         except Exception as e:
             dy.log.error("Invalid map file: " + str(self.full_path) + " " + str(e))
@@ -131,6 +106,9 @@ class Map:
         return dy.file_exists(directory + name)
 
     def create_start_point(self, pos):
+        if not self.is_valid_position(pos):
+            raise ValueError("Invalid start position: " + str(pos))
+
         self.start = pos
         self.start_ent = esper.create_entity()
 
@@ -158,6 +136,9 @@ class Map:
         pass
 
     def create_goal_point(self, pos):
+        if not self.is_valid_position(pos):
+            raise ValueError("Invalid goal position: " + str(pos))
+
         self.goal = pos
         self.goal_ent = esper.create_entity()
 
@@ -201,14 +182,20 @@ class Map:
         shader.stop()
 
     def is_wall(self, pos: glm.ivec3):
-        if pos.x < 1 or pos.y < 1 or pos.z < 0 or pos.x > self.width or pos.y > self.height or pos.z >= self.length:
-            return False
-
-        return self.look_up[pos.x][pos.y][pos.z] == 1
+        if pos.x < 1 or pos.y < 1 or pos.z < 0 or pos.x > self.width or pos.y > self.height or pos.z > self.length - 1:
+            return True
+        result = False
+        try:
+            result = self.look_up[pos.x][pos.y][pos.z] == 1
+        except:
+            dy.log.error("Invalid cube position: " + str(pos))
+            raise ValueError("Invalid cube position: " + str(pos))
+        # return self.look_up[pos.x][pos.y][pos.z] == 1
+        return result
 
     def is_moveable(self, cur_pos: glm.ivec3, next_pos: glm.ivec3):
 
-        if next_pos.x < 1 or next_pos.y < 1 or next_pos.z < 0 or next_pos.x > self.width or next_pos.y > self.height or next_pos.z >= self.length:
+        if self.is_wall(next_pos):
             return False
 
         if self.look_up[next_pos.x][next_pos.y][next_pos.z] == 1:
@@ -291,6 +278,9 @@ class Map:
         esper.add_component(self.passing_points_ent, tag)
         pass
 
+    def is_within_map_bound(self, pos):
+        return pos.x >= 1 and pos.y >= 1 and pos.z >= 0 and pos.x <= self.width and pos.y <= self.height and pos.z < self.length
+
     def create_shape(self, pivots):
         new_shape_ent = esper.create_entity()
         transform = TransformComponent.TransformComponent(glm.vec3(0, 0, 0))
@@ -340,4 +330,73 @@ class Map:
         for ent in self.shape_entities:
             shape_comp = esper.component_for_entity(ent, ShapeComponent.ShapeComponent)
             shape_comp.reset_shape_position()
+        pass
+
+    def load_as_2d_map(self, lines):
+        self.width = int(lines[0].split(",")[0])
+        self.height = int(lines[0].split(",")[1])
+
+        self.look_up = np.array(
+            [[[0 for _ in range(0, self.length)] for _ in range(0, self.height + 1)] for _ in
+             range(0, self.width + 1)])
+
+        second_line_data = lines[1].split(",")
+
+        self.create_start_point(glm.ivec3(int(second_line_data[0]), int(second_line_data[1]), 0))
+        self.create_goal_point(glm.ivec3(int(second_line_data[2]), int(second_line_data[3]), 0))
+
+        # check for passing points
+        if len(second_line_data) > 4:
+            for i in range(4, len(second_line_data), 2):
+                pos = glm.ivec3(int(second_line_data[i]), int(second_line_data[i + 1]), 0)
+                self.passing_point_positions.append(pos)
+            self.create_passing_points(self.passing_point_positions)
+
+        shape_count = int(lines[2].split(",")[0])
+
+        for i in range(0, shape_count):
+            line = lines[i + 3].strip()
+            shape_data = line.split(",")
+            if len(shape_data) == 0 or len(shape_data) % 2 != 0:
+                raise ValueError("Invalid shape data: " + line)
+            pivots = []
+            for j in range(0, len(shape_data), 2):
+                pivots.append(glm.ivec3(int(shape_data[j]), int(shape_data[j + 1]), 0))
+
+            self.create_shape(pivots)
+        pass
+
+    def load_as_3d_map(self, lines):
+        self.width = int(lines[0].split(",")[0])
+        self.height = int(lines[0].split(",")[1])
+        self.length = int(lines[0].split(",")[2])
+
+        self.look_up = np.array(
+            [[[0 for _ in range(0, self.length)] for _ in range(0, self.height + 1)] for _ in
+             range(0, self.width + 1)])
+
+        second_line_data = lines[1].split(",")
+
+        self.create_start_point(glm.ivec3(int(second_line_data[0]), int(second_line_data[1]), int(second_line_data[2])))
+        self.create_goal_point(glm.ivec3(int(second_line_data[3]), int(second_line_data[4]), int(second_line_data[5])))
+
+        # check for passing points
+        if len(second_line_data) > 6:
+            for i in range(6, len(second_line_data), 3):
+                pos = glm.ivec3(int(second_line_data[i]), int(second_line_data[i + 1]), int(second_line_data[i + 2]))
+                self.passing_point_positions.append(pos)
+            self.create_passing_points(self.passing_point_positions)
+
+        shape_count = int(lines[2].split(",")[0])
+
+        for i in range(0, shape_count):
+            line = lines[i + 3].strip()
+            shape_data = line.split(",")
+            if len(shape_data) == 0 or len(shape_data) % 3 != 0:
+                raise ValueError("Invalid shape data: " + line)
+            pivots = []
+            for j in range(0, len(shape_data), 3):
+                pivots.append(glm.ivec3(int(shape_data[j]), int(shape_data[j + 1]), int(shape_data[j + 2])))
+
+            self.create_shape(pivots)
         pass

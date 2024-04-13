@@ -4,7 +4,7 @@ lib:
 	imgui (debug GUI)
 	numpy (array)
 	glfw (manage window)
-	esper (light weight ECS framework)
+	esper (light-weight ECS framework)
 	colorLog (colorful logging)
 	tk (file dialog)
 	pillow (image texture loader)

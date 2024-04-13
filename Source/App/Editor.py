@@ -58,6 +58,7 @@ class Editor:
         self.last_algorithm_runtime = 0
         self.last_simulation_runtime = 0
         self.last_path_length = 0
+        self.last_search_volume = 0
 
     def execute(self, command: Command):
         try:
@@ -279,7 +280,9 @@ class Editor:
         imgui.text("Last run")
         imgui.text("Algorithm runtime: %s" % self.last_algorithm_runtime)
         imgui.text("Path length: %s" % self.last_path_length)
+        imgui.text("Search volume: %s" % self.last_search_volume)
         imgui.text("Simulation runtime: %s" % self.last_simulation_runtime)
+        imgui.text("Map size: %s x %s x %s" % (self.app.cur_map_context.map.width, self.app.cur_map_context.map.height, self.app.cur_map_context.map.length))
 
         imgui.end()
 
@@ -430,11 +433,17 @@ class Editor:
             self.current_algorithm = None
 
         self.current_algorithm = algo
-        try:
-            self.current_algorithm.solve_and_visualize()
-            self.last_algorithm_runtime = self.current_algorithm.time_elapsed
-            self.last_path_length = self.current_algorithm.path_length
-        except Exception as e:
-            dy.log.warning("Run error: %s", e)
-            self.handle_when_no_path_found()
-        pass
+        # try:
+        #     self.current_algorithm.solve_and_visualize()
+        #     self.last_algorithm_runtime = self.current_algorithm.time_elapsed
+        #     self.last_path_length = self.current_algorithm.path_length
+        #     self.last_search_volume = self.current_algorithm.search_volume
+        # except Exception as e:
+        #     dy.log.warning("Run error: %s", e)
+        #     self.handle_when_no_path_found()
+        # pass
+
+        self.current_algorithm.solve_and_visualize()
+        self.last_algorithm_runtime = self.current_algorithm.time_elapsed
+        self.last_path_length = self.current_algorithm.path_length
+        self.last_search_volume = self.current_algorithm.search_volume

@@ -53,6 +53,7 @@ class VisualizedAlgorithm(ABC):
         self.adjacency_matrix = None
         self.time_elapsed = 0
         self.path_length = 0
+        self.search_volume = 0
 
     @abstractmethod
     def find_path(self, start: glm.ivec3, goal: glm.ivec3):
@@ -77,6 +78,7 @@ class VisualizedAlgorithm(ABC):
         path_comp = esper.component_for_entity(self.path_ent, PathComponent.PathComponent)
 
         self.path_length = 0
+        self.search_volume = 0
         start_time = time.time()
 
         self._g = {}

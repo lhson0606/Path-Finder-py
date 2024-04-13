@@ -65,6 +65,7 @@ class VisualizedAStar(VisualizedAlgorithm.VisualizedAlgorithm):
         f_score = {start: h(glm.vec3(start), glm.vec3(goal))}
 
         while len(open_set) > 0:
+            self.search_volume += 1
             current = open_set[0][1]
 
             if current == goal:

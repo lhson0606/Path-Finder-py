@@ -62,6 +62,7 @@ class VisualizedDijkstra(VisualizedAlgorithm.VisualizedAlgorithm):
         open_set.put(start)
 
         while not open_set.empty():
+            self.search_volume += 1
             current = open_set.get()
 
             if current == goal:

@@ -175,6 +175,12 @@ def mouse_button_callback(window, button, action, mods):
         if button == glfw.MOUSE_BUTTON_LEFT and app.context == app.Context.EDITOR:
             if imgui.is_any_item_hovered() or imgui.is_any_item_active():
                 return
+            if app.cur_world_name == "default":
+                return
+
+            if app.cur_map_context.editor.mode == Source.App.Editor.Mode.IS_RUNNING_SIMULATION:
+                return
+
             o = app.cur_map_context.picking_processor.pick(app.mousePos.x, app.mousePos.y)
             app.cur_map_context.editor.handle_pick(o)
 
@@ -195,7 +201,7 @@ class App:
         self.width = 1280
         self.height = 720
         self.window_name = ("\"Within those eyes burned a lust for the female body, "
-                            "stained with the same carnal desire that men possessed for women\"")
+                            "stained with the same carnal desire that men possessed for women.\"")
         self.clear_color = glm.vec4(0.2, 0.3, 0.3, -1)
         self.io = None
         self.key_pressed = None
@@ -216,8 +222,10 @@ class App:
         # imgui input state
         self.map_inp_changed_i0 = True
         self.map_inp_changed_i1 = True
-        self.widgets_basic_i0 = 25
-        self.widgets_basic_i1 = 25
+        self.map_inp_changed_i2 = True
+        self.widgets_basic_i0 = 10
+        self.widgets_basic_i1 = 10
+        self.widgets_basic_i2 = 5
         self.will_show_ray_cast = False
 
         # app state
@@ -225,7 +233,7 @@ class App:
         self.context = None
         self.opened_map = {}
         self.map_contexts = {}
-        self.cur_world_name = None
+        self.cur_world_name = "default"
         self.cur_map_context = None
         self.opened_map_count = 0
 
@@ -531,6 +539,7 @@ class App:
             imgui.text("Input map size")
             self.map_inp_changed_i0, self.widgets_basic_i0 = imgui.input_int("width", self.widgets_basic_i0, 1, 100)
             self.map_inp_changed_i1, self.widgets_basic_i1 = imgui.input_int("height", self.widgets_basic_i1, 1, 100)
+            self.map_inp_changed_i2, self.widgets_basic_i2 = imgui.input_int("length", self.widgets_basic_i2, 1, 100)
 
             if self.map_inp_changed_i0:
                 self.widgets_basic_i0 = max(10, self.widgets_basic_i0)
@@ -540,11 +549,15 @@ class App:
                 self.widgets_basic_i1 = max(10, self.widgets_basic_i1)
                 self.widgets_basic_i1 = min(50, self.widgets_basic_i1)
 
+            if self.map_inp_changed_i2:
+                self.widgets_basic_i2 = max(5, self.widgets_basic_i2)
+                self.widgets_basic_i2 = min(10, self.widgets_basic_i2)
+
             imgui.separator()
             if imgui.button(label="OK", width=120, height=0):
                 imgui.close_current_popup()
                 self.show_inp_map_size_modal = False
-                self.init_map(Map(self.get_new_world_name(), self.widgets_basic_i0, self.widgets_basic_i1))
+                self.init_map(Map(self.get_new_world_name(), self.widgets_basic_i0, self.widgets_basic_i1, self.widgets_basic_i2))
 
             imgui.set_item_default_focus()
             imgui.same_line()
@@ -601,6 +614,7 @@ class App:
         self.has_error = True
 
     def init_map(self, target_map):
+        prev_world = self.cur_world_name
         # Note: each world has
         # + exactly one map component
         # + exactly one camera component (but rn we don't have camera component)
@@ -643,9 +657,20 @@ class App:
         # load map data
         if not target_map.is_draft:
             dy.log.info("Loading \'" + target_map.name + "\' data")
-            target_map.load(
-                self
-            )
+            try:
+                target_map.load(
+                    self
+                )
+            except Exception as e:
+                # delete map context
+                self.map_contexts.pop(target_map.name)
+                self.opened_map_count -= 1
+                self.load_map(prev_world)
+                esper.delete_world(target_map.name)
+                dy.log.error("Error while loading map data: " + str(e))
+                self.pop_up_error("Error while loading map data: " + str(e))
+                raise Exception("Error while loading map data: " + str(e))
+                return
 
         # ===== create a grid entity =====
         new_grid_entity = esper.create_entity()
